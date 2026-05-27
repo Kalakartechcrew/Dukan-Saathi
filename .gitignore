@@ -1,0 +1,7 @@
+backend/venv
+backend/.env
+.agents
+.codex
+docker
+frontend/.env
+frontend/node_modules

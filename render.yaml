@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: ai-assistant-backend
+    env: python
+    plan: free
+    runtime: python
+    
+    # Build configuration
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    
+    # Environment variables
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.8
+
+      - key: GROQ_API_KEY
+        sync: false
+      
+      - key: PINECONE_API_KEY
+        sync: false
+      
+      - key: PINECONE_INDEX_NAME
+        value: ai-assistant
+        
+      - key: PYTHONUNBUFFERED
+        value: true
+      - key: PORT
+        value: 8000
+    
+    # Healthcheck configuration
+    healthCheckPath: /
