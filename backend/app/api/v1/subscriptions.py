@@ -11,7 +11,7 @@ from app.api.deps import get_current_user, get_tenant_id_without_subscription_ch
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.base import serialize_doc, utc_now
-from app.services.subscription_service import activate_subscription, get_current_subscription, get_plan
+from app.services.subscription_service import activate_subscription, claim_free_plan_once, get_current_subscription, get_plan
 
 router = APIRouter(prefix="/subscriptions", tags=["Subscriptions"])
 
@@ -68,6 +68,8 @@ async def create_checkout(
     if not plan or not plan.get("is_active", True):
         raise HTTPException(404, "Plan not found")
     if float(plan.get("price") or 0) <= 0:
+        if not plan.get("allow_resubscribe", False):
+            await claim_free_plan_once(tenant_id, serialize_doc(plan))
         subscription = await activate_subscription(tenant_id, str(plan["_id"]), payment_status="free", created_by=user["id"])
         return {"message": "Subscription activated", "subscription": subscription}
     if body.provider != "razorpay":

@@ -141,6 +141,51 @@ async def get_plan(plan_code_or_id: str | None) -> dict | None:
     return serialize_doc(plan) if plan else None
 
 
+async def has_used_free_plan(tenant_id: str, plan: dict | None = None) -> bool:
+    db = get_db()
+    shop_query: dict[str, Any] = {"_id": tenant_id}
+    if ObjectId.is_valid(tenant_id):
+        shop_query = {"$or": [{"_id": ObjectId(tenant_id)}, {"_id": tenant_id}]}
+    shop = await db.shops.find_one(shop_query, {"free_plan_used": 1, "free_plan_used_at": 1})
+    if shop and (shop.get("free_plan_used") or shop.get("free_plan_used_at")):
+        return True
+
+    clauses: list[dict[str, Any]] = [
+        {"payment_status": "free"},
+        {"is_free_plan": True},
+        {"free_plan": True},
+    ]
+    if plan:
+        plan_id = plan.get("id") or str(plan.get("_id", ""))
+        plan_code = plan.get("code")
+        if plan_id:
+            clauses.append({"plan_id": plan_id})
+            if ObjectId.is_valid(plan_id):
+                clauses.append({"plan_id": ObjectId(plan_id)})
+        if plan_code:
+            clauses.append({"plan_code": plan_code})
+    return await db.subscriptions.count_documents({
+        "tenant_id": tenant_id,
+        "$or": clauses,
+    }) > 0
+
+
+async def claim_free_plan_once(tenant_id: str, plan: dict | None = None) -> None:
+    if await has_used_free_plan(tenant_id, plan):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Free plan has already been used for this shop. Please choose a paid plan to continue.")
+
+    db = get_db()
+    if not ObjectId.is_valid(tenant_id):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid tenant id")
+    now = utc_now()
+    result = await db.shops.update_one(
+        {"_id": ObjectId(tenant_id), "free_plan_used": {"$ne": True}},
+        {"$set": {"free_plan_used": True, "free_plan_used_at": now, "updated_at": now}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status.HTTP_409_CONFLICT, "Free plan has already been used for this shop. Please choose a paid plan to continue.")
+
+
 def subscription_is_usable(subscription: dict | None) -> bool:
     if not subscription:
         return False
@@ -240,12 +285,15 @@ async def activate_subscription(
     duration_minutes = int(plan.get("duration_minutes") or 0)
     duration_days = int(plan.get("duration_days") or 0)
     status_value = "lifetime" if plan.get("plan_type") == "lifetime" else "active"
+    is_free_plan = float(plan.get("price") or 0) <= 0
     expires_at = None if status_value == "lifetime" else now + (timedelta(minutes=duration_minutes) if duration_minutes > 0 else timedelta(days=max(duration_days, 1)))
     doc = {
         "tenant_id": tenant_id,
         "plan_id": plan["id"],
         "plan_code": plan["code"],
         "plan_name": plan["name"],
+        "plan_price": plan.get("price", 0),
+        "is_free_plan": is_free_plan,
         "status": status_value,
         "starts_at": now,
         "expires_at": expires_at,
@@ -260,9 +308,12 @@ async def activate_subscription(
     }
     await db.subscriptions.update_many({"tenant_id": tenant_id, "status": {"$in": ["pending", "trialing", "active", "past_due"]}}, {"$set": {"status": "replaced", "updated_at": now}})
     result = await db.subscriptions.insert_one(doc)
+    shop_update = {"subscription_plan": plan["code"], "subscription_status": status_value, "subscription_expires_at": expires_at}
+    if is_free_plan:
+        shop_update.update({"free_plan_used": True, "free_plan_used_at": now})
     await db.shops.update_one(
         {"_id": ObjectId(tenant_id)},
-        {"$set": {"subscription_plan": plan["code"], "subscription_status": status_value, "subscription_expires_at": expires_at}},
+        {"$set": shop_update},
     )
     doc["_id"] = result.inserted_id
     return serialize_doc(doc)

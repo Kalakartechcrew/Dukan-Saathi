@@ -27,6 +27,8 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "https://storied-dodol-1a5903.netlify.app",
+        "https://y-a33f6ktys-workkalakartechcrew-6260s-projects.vercel.app",
+        "https://y-indol-iota.vercel.app",
     ]
 
     RATE_LIMIT: str = "100/minute"
