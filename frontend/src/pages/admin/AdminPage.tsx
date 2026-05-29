@@ -33,7 +33,7 @@ interface Plan {
   features: string[]
   limits: Record<string, unknown>
   is_active: boolean
-  is_single_subscribe?: boolean
+  allow_resubscribe?: boolean
 }
 
 const tabs: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
@@ -55,7 +55,7 @@ const emptyPlan = {
   monthly_invoices: '1000',
   analytics: true,
   backup: false,
-  is_single_subscribe: false,
+  allow_resubscribe: false,
 }
 
 export function AdminPage() {
@@ -101,7 +101,7 @@ export function AdminPage() {
         backup: planForm.backup,
       },
       is_active: true,
-      is_single_subscribe: planForm.is_single_subscribe,
+      allow_resubscribe: planForm.allow_resubscribe,
       }
       return editingPlanId ? api.patch(`/admin/plans/${editingPlanId}`, payload) : api.post('/admin/plans', payload)
     },
@@ -203,7 +203,7 @@ export function AdminPage() {
       monthly_invoices: String(plan.limits?.monthly_invoices || ''),
       analytics: Boolean(plan.limits?.analytics),
       backup: Boolean(plan.limits?.backup),
-      is_single_subscribe: Boolean(plan.is_single_subscribe),
+      allow_resubscribe: Boolean(plan.allow_resubscribe),
     })
     setTab('plans')
   }
@@ -332,6 +332,18 @@ export function AdminPage() {
                 <Input label="Products" type="number" value={planForm.products} onChange={(e) => setPlanForm({ ...planForm, products: e.target.value })} />
                 <Input label="Invoices/mo" type="number" value={planForm.monthly_invoices} onChange={(e) => setPlanForm({ ...planForm, monthly_invoices: e.target.value })} />
               </div>
+              <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900/70">
+                <span>
+                  <span className="block font-medium">Allow resubscribe</span>
+                  <span className="block text-xs text-slate-500">When off, this free plan can be used only once per shop.</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={planForm.allow_resubscribe}
+                  onChange={(e) => setPlanForm({ ...planForm, allow_resubscribe: e.target.checked })}
+                  className="h-5 w-5 rounded border-slate-300 text-indigo-600"
+                />
+              </label>
               <div className="flex gap-2">
                 <Button className="flex-1" loading={createPlan.isPending} onClick={() => createPlan.mutate()} tooltip="Save this subscription plan for shopkeeper checkout.">
                   <Save className="h-4 w-4" /> {editingPlanId ? 'Update plan' : 'Create plan'}
@@ -344,8 +356,11 @@ export function AdminPage() {
             {planRows.map((plan) => (
               <Card key={plan.id}>
                 <div className="flex items-start justify-between gap-3">
-                  <div><h3 className="font-bold">{plan.name}</h3><p className="text-sm text-slate-500">{plan.code} · {plan.plan_type} · {plan.is_single_subscribe ? 'single subscribe' : 'multi subscribe'}</p></div>
-                  <span className={`rounded-full px-2 py-1 text-xs ${plan.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>{plan.is_active ? 'active' : 'disabled'}</span>
+                  <div><h3 className="font-bold">{plan.name}</h3><p className="text-sm text-slate-500">{plan.code} · {plan.plan_type}</p></div>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <span className={`rounded-full px-2 py-1 text-xs ${plan.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>{plan.is_active ? 'active' : 'disabled'}</span>
+                    <span className={`rounded-full px-2 py-1 text-xs ${plan.allow_resubscribe ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>{plan.allow_resubscribe ? 'resubscribe on' : 'one time'}</span>
+                  </div>
                 </div>
                 <p className="mt-4 text-2xl font-bold">{formatCurrency(plan.price)}</p>
                 <p className="text-sm text-slate-500">{plan.duration_minutes ? `${plan.duration_minutes} minutes` : `${plan.duration_days || 'Lifetime'} days`} · {plan.features?.join(', ')}</p>
