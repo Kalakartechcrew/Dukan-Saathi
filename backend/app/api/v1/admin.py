@@ -33,6 +33,7 @@ class PlanPayload(BaseModel):
     limits: dict[str, Any] = {}
     is_active: bool = True
     allow_resubscribe: bool = False
+    is_single_subscribe: bool = False
 
 
 class StatusPayload(BaseModel):

@@ -3,7 +3,7 @@ import hashlib
 from typing import Annotated
 
 from bson import ObjectId
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 import httpx
 from pydantic import BaseModel
 
@@ -11,7 +11,14 @@ from app.api.deps import get_current_user, get_tenant_id_without_subscription_ch
 from app.core.config import settings
 from app.core.database import get_db
 from app.models.base import serialize_doc, utc_now
-from app.services.subscription_service import activate_subscription, claim_free_plan_once, get_current_subscription, get_plan
+from app.services.subscription_service import (
+    activate_subscription,
+    activate_subscription_from_razorpay,
+    claim_free_plan_once,
+    create_razorpay_subscription,
+    get_current_subscription,
+    get_plan,
+)
 
 router = APIRouter(prefix="/subscriptions", tags=["Subscriptions"])
 
@@ -25,6 +32,7 @@ class PaymentVerifyRequest(BaseModel):
     checkout_id: str
     provider_payment_id: str
     provider_order_id: str | None = None
+    provider_subscription_id: str | None = None
     provider_signature: str | None = None
     status: str = "paid"
 
@@ -79,25 +87,8 @@ async def create_checkout(
     if not settings.RAZORPAY_KEY_ID.startswith(("rzp_test_", "rzp_live_")):
         raise HTTPException(503, "Razorpay key id is invalid. It must start with rzp_test_ or rzp_live_.")
     now = utc_now()
-    amount_paise = int(round(float(plan.get("price", 0)) * 100))
-    receipt = f"sub_{tenant_id[-8:]}_{int(now.timestamp())}"
-    try:
-        async with httpx.AsyncClient(timeout=20) as client:
-            razorpay_res = await client.post(
-                "https://api.razorpay.com/v1/orders",
-                auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET),
-                json={
-                    "amount": amount_paise,
-                    "currency": plan.get("currency", "INR"),
-                    "receipt": receipt,
-                    "notes": {"tenant_id": tenant_id, "plan_code": plan["code"]},
-                },
-            )
-    except httpx.RequestError as exc:
-        raise HTTPException(502, f"Could not reach Razorpay: {exc.__class__.__name__}")
-    if razorpay_res.status_code >= 400:
-        raise HTTPException(502, f"Razorpay order creation failed: {_razorpay_error_message(razorpay_res)}")
-    order = razorpay_res.json()
+    serialized_plan = serialize_doc(plan)
+    razorpay_subscription = await create_razorpay_subscription(tenant_id, user, serialized_plan)
     doc = {
         "tenant_id": tenant_id,
         "user_id": user["id"],
@@ -106,9 +97,10 @@ async def create_checkout(
         "amount": plan.get("price", 0),
         "currency": plan.get("currency", "INR"),
         "provider": "razorpay",
-        "provider_order_id": order.get("id"),
-        "razorpay_order": order,
+        "provider_subscription_id": razorpay_subscription.get("id"),
+        "razorpay_subscription": razorpay_subscription,
         "status": "created",
+        "payment_mode": "recurring",
         "created_at": now,
     }
     result = await db.subscription_payments.insert_one(doc)
@@ -116,9 +108,10 @@ async def create_checkout(
     return {
         **serialize_doc(doc),
         "provider": "razorpay",
+        "payment_mode": "recurring",
         "key_id": settings.RAZORPAY_KEY_ID,
-        "order_id": order.get("id"),
-        "amount": amount_paise,
+        "subscription_id": razorpay_subscription.get("id"),
+        "amount": int(round(float(plan.get("price", 0)) * 100)),
         "currency": plan.get("currency", "INR"),
         "name": "Sathi Subscription",
         "description": plan["name"],
@@ -140,12 +133,22 @@ async def verify_payment(
     if payment.get("status") == "paid":
         return {"message": "Payment already verified", "subscription": await get_current_subscription(tenant_id)}
     if payment.get("provider") == "razorpay":
-        if not body.provider_order_id or not body.provider_signature:
-            raise HTTPException(400, "Razorpay order id and signature are required")
-        expected_order_id = payment.get("provider_order_id")
-        if body.provider_order_id != expected_order_id:
-            raise HTTPException(400, "Payment order mismatch")
-        payload = f"{body.provider_order_id}|{body.provider_payment_id}".encode()
+        if not body.provider_signature:
+            raise HTTPException(400, "Razorpay signature is required")
+        expected_subscription_id = payment.get("provider_subscription_id")
+        if expected_subscription_id:
+            if not body.provider_subscription_id:
+                raise HTTPException(400, "Razorpay subscription id is required")
+            if body.provider_subscription_id != expected_subscription_id:
+                raise HTTPException(400, "Payment subscription mismatch")
+            payload = f"{body.provider_payment_id}|{expected_subscription_id}".encode()
+        else:
+            if not body.provider_order_id:
+                raise HTTPException(400, "Razorpay order id is required")
+            expected_order_id = payment.get("provider_order_id")
+            if body.provider_order_id != expected_order_id:
+                raise HTTPException(400, "Payment order mismatch")
+            payload = f"{body.provider_order_id}|{body.provider_payment_id}".encode()
         expected = hmac.new(settings.RAZORPAY_KEY_SECRET.encode(), payload, hashlib.sha256).hexdigest()
         if not hmac.compare_digest(expected, body.provider_signature):
             await db.subscription_payments.update_one(
@@ -156,7 +159,12 @@ async def verify_payment(
     now = utc_now()
     await db.subscription_payments.update_one(
         {"_id": payment["_id"]},
-        {"$set": {"status": body.status, "provider_payment_id": body.provider_payment_id, "verified_at": now}},
+        {"$set": {
+            "status": body.status,
+            "provider_payment_id": body.provider_payment_id,
+            "provider_subscription_id": body.provider_subscription_id or payment.get("provider_subscription_id"),
+            "verified_at": now,
+        }},
     )
     if body.status != "paid":
         await db.notifications.insert_one({
@@ -170,7 +178,17 @@ async def verify_payment(
             "created_at": now,
         })
         raise HTTPException(402, "Payment failed")
-    subscription = await activate_subscription(tenant_id, payment["plan_id"], payment_status="paid", created_by=user["id"])
+    if payment.get("provider_subscription_id"):
+        subscription = await activate_subscription_from_razorpay(
+            tenant_id,
+            payment["plan_id"],
+            provider_subscription_id=payment["provider_subscription_id"],
+            provider_payment_id=body.provider_payment_id,
+            created_by=user["id"],
+            provider_payload=payment.get("razorpay_subscription"),
+        )
+    else:
+        subscription = await activate_subscription(tenant_id, payment["plan_id"], payment_status="paid", created_by=user["id"])
     return {"message": "Subscription activated", "subscription": subscription}
 
 
@@ -181,12 +199,92 @@ async def cancel_subscription(
 ):
     db = get_db()
     now = utc_now()
+    current = await get_current_subscription(tenant_id)
+    provider_subscription_id = current.get("provider_subscription_id") if current else None
+    if provider_subscription_id:
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                response = await client.post(
+                    f"https://api.razorpay.com/v1/subscriptions/{provider_subscription_id}/cancel",
+                    auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET),
+                    json={"cancel_at_cycle_end": 0},
+                )
+        except httpx.RequestError as exc:
+            raise HTTPException(502, f"Could not reach Razorpay: {exc.__class__.__name__}")
+        if response.status_code >= 400:
+            raise HTTPException(502, f"Razorpay subscription cancellation failed: {_razorpay_error_message(response)}")
     await db.subscriptions.update_many(
         {"tenant_id": tenant_id, "status": {"$in": ["trialing", "active", "past_due"]}},
         {"$set": {"status": "cancelled", "cancelled_by": user["id"], "updated_at": now}},
     )
     await db.shops.update_one({"_id": ObjectId(tenant_id)}, {"$set": {"subscription_status": "cancelled"}})
     return {"message": "Subscription cancelled"}
+
+
+@router.post("/webhook/razorpay")
+async def razorpay_webhook(request: Request):
+    if not settings.RAZORPAY_WEBHOOK_SECRET:
+        raise HTTPException(503, "Razorpay webhook secret is not configured")
+    body = await request.body()
+    signature = request.headers.get("x-razorpay-signature", "")
+    expected = hmac.new(settings.RAZORPAY_WEBHOOK_SECRET.encode(), body, hashlib.sha256).hexdigest()
+    if not hmac.compare_digest(expected, signature):
+        raise HTTPException(400, "Invalid webhook signature")
+
+    payload = await request.json()
+    event_id = request.headers.get("x-razorpay-event-id")
+    db = get_db()
+    if event_id:
+        existing = await db.razorpay_webhooks.find_one({"event_id": event_id})
+        if existing:
+            return {"message": "duplicate ignored"}
+    await db.razorpay_webhooks.insert_one({"event_id": event_id, "payload": payload, "created_at": utc_now()})
+
+    event = payload.get("event")
+    payment_entity = (((payload.get("payload") or {}).get("payment") or {}).get("entity") or {})
+    subscription_entity = (((payload.get("payload") or {}).get("subscription") or {}).get("entity") or {})
+    provider_subscription_id = subscription_entity.get("id") or payment_entity.get("subscription_id")
+    if not provider_subscription_id:
+        return {"message": "ignored"}
+
+    payment_id = payment_entity.get("id")
+    if event in {"subscription.activated", "subscription.charged", "payment.captured"}:
+        local = await db.subscriptions.find_one({"provider_subscription_id": provider_subscription_id}, sort=[("created_at", -1)])
+        if local:
+            now = utc_now()
+            current_end = _datetime_from_unix(subscription_entity.get("current_end"))
+            update = {
+                "status": "active",
+                "payment_status": "paid",
+                "provider_payment_id": payment_id or local.get("provider_payment_id"),
+                "provider_payload": subscription_entity or payload,
+                "updated_at": now,
+            }
+            if current_end:
+                update["expires_at"] = current_end
+                update["renews_at"] = current_end
+            await db.subscriptions.update_one({"_id": local["_id"]}, {"$set": update})
+            shop_update = {"subscription_status": "active", "updated_at": now}
+            if current_end:
+                shop_update["subscription_expires_at"] = current_end
+            await db.shops.update_one({"_id": ObjectId(local["tenant_id"])}, {"$set": shop_update})
+    elif event in {"subscription.cancelled", "subscription.completed", "subscription.expired", "subscription.halted", "payment.failed"}:
+        status_value = "cancelled" if event == "subscription.cancelled" else "expired" if event == "subscription.expired" else "past_due"
+        local = await db.subscriptions.find_one({"provider_subscription_id": provider_subscription_id}, sort=[("created_at", -1)])
+        if local:
+            await db.subscriptions.update_one(
+                {"_id": local["_id"]},
+                {"$set": {"status": status_value, "payment_status": "failed" if event == "payment.failed" else local.get("payment_status", "paid"), "provider_payload": payload, "updated_at": utc_now()}},
+            )
+            await db.shops.update_one({"_id": ObjectId(local["tenant_id"])}, {"$set": {"subscription_status": status_value, "updated_at": utc_now()}})
+    return {"message": "ok"}
+
+
+def _datetime_from_unix(value):
+    if isinstance(value, (int, float)) and value > 0:
+        from datetime import datetime, timezone
+        return datetime.fromtimestamp(value, timezone.utc)
+    return None
 
 
 def _razorpay_error_message(response: httpx.Response) -> str:

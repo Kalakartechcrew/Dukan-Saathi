@@ -34,6 +34,7 @@ interface Plan {
   limits: Record<string, unknown>
   is_active: boolean
   allow_resubscribe?: boolean
+  is_single_subscribe?: boolean
 }
 
 const tabs: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
@@ -56,6 +57,7 @@ const emptyPlan = {
   analytics: true,
   backup: false,
   allow_resubscribe: false,
+  is_single_subscribe: false,
 }
 
 export function AdminPage() {
@@ -102,6 +104,7 @@ export function AdminPage() {
       },
       is_active: true,
       allow_resubscribe: planForm.allow_resubscribe,
+      is_single_subscribe: planForm.is_single_subscribe,
       }
       return editingPlanId ? api.patch(`/admin/plans/${editingPlanId}`, payload) : api.post('/admin/plans', payload)
     },
@@ -204,6 +207,7 @@ export function AdminPage() {
       analytics: Boolean(plan.limits?.analytics),
       backup: Boolean(plan.limits?.backup),
       allow_resubscribe: Boolean(plan.allow_resubscribe),
+      is_single_subscribe: Boolean(plan.is_single_subscribe),
     })
     setTab('plans')
   }

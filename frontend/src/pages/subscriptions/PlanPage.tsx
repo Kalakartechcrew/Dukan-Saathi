@@ -115,15 +115,16 @@ export function PlanPage() {
           currency: data.currency,
           name: data.name,
           description: data.description,
-          order_id: data.order_id,
+          subscription_id: data.subscription_id,
           prefill: { name: user?.full_name, email: user?.email },
           theme: { color: '#4f46e5' },
-          handler: async (response: { razorpay_payment_id: string; razorpay_order_id: string; razorpay_signature: string }) => {
+          handler: async (response: { razorpay_payment_id: string; razorpay_order_id?: string; razorpay_subscription_id?: string; razorpay_signature: string }) => {
             try {
               await api.post('/subscriptions/verify-payment', {
                 checkout_id: data.id,
                 provider_payment_id: response.razorpay_payment_id,
                 provider_order_id: response.razorpay_order_id,
+                provider_subscription_id: response.razorpay_subscription_id,
                 provider_signature: response.razorpay_signature,
                 status: 'paid',
               })

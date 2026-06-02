@@ -3,7 +3,9 @@ from typing import Any
 
 from bson import ObjectId
 from fastapi import HTTPException, status
+import httpx
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.base import serialize_doc, utc_now
 
@@ -186,6 +188,131 @@ async def claim_free_plan_once(tenant_id: str, plan: dict | None = None) -> None
         raise HTTPException(status.HTTP_409_CONFLICT, "Free plan has already been used for this shop. Please choose a paid plan to continue.")
 
 
+def _razorpay_error_message(response: httpx.Response) -> str:
+    try:
+        payload = response.json()
+    except ValueError:
+        return f"HTTP {response.status_code}"
+    error = payload.get("error") if isinstance(payload, dict) else None
+    if isinstance(error, dict):
+        description = error.get("description") or error.get("reason") or error.get("code")
+        if description:
+            return str(description)
+    return f"HTTP {response.status_code}"
+
+
+def _razorpay_plan_period(plan: dict) -> tuple[str, int]:
+    plan_type = str(plan.get("plan_type") or "").lower()
+    duration_days = int(plan.get("duration_days") or 0)
+    if plan_type in {"yearly", "annual"} or duration_days >= 365:
+        return "yearly", 1
+    if plan_type == "quarterly" or 80 <= duration_days <= 100:
+        return "quarterly", 1
+    if plan_type == "weekly" or 7 <= duration_days < 28:
+        return "weekly", max(1, round(duration_days / 7))
+    if plan_type == "daily" and duration_days >= 7:
+        return "daily", duration_days
+    return "monthly", max(1, round(duration_days / 30)) if duration_days >= 45 else 1
+
+
+def _razorpay_total_count(period: str, interval: int, plan: dict) -> int:
+    configured = int(plan.get("recurring_total_count") or 0)
+    if configured > 0:
+        return configured
+    cycles_per_year = {"daily": 365, "weekly": 52, "monthly": 12, "quarterly": 4, "yearly": 1}
+    return max(1, (cycles_per_year.get(period, 12) * 10) // max(interval, 1))
+
+
+def _razorpay_plan_fingerprint(plan: dict) -> str:
+    period, interval = _razorpay_plan_period(plan)
+    amount_paise = int(round(float(plan.get("price") or 0) * 100))
+    return f"{amount_paise}:{plan.get('currency', 'INR')}:{period}:{interval}:{plan.get('name')}"
+
+
+async def ensure_razorpay_plan(plan: dict) -> str:
+    if not settings.RAZORPAY_KEY_ID or not settings.RAZORPAY_KEY_SECRET:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Razorpay is not configured. Add RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.")
+    amount_paise = int(round(float(plan.get("price") or 0) * 100))
+    if amount_paise < 100:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Razorpay recurring plans must be at least INR 1.00.")
+
+    fingerprint = _razorpay_plan_fingerprint(plan)
+    if plan.get("razorpay_plan_id") and plan.get("razorpay_plan_fingerprint") == fingerprint:
+        return plan["razorpay_plan_id"]
+
+    period, interval = _razorpay_plan_period(plan)
+    payload = {
+        "period": period,
+        "interval": interval,
+        "item": {
+            "name": plan["name"],
+            "amount": amount_paise,
+            "currency": plan.get("currency", "INR"),
+            "description": f"Sathi {plan['name']} subscription",
+        },
+        "notes": {"sathi_plan_id": plan["id"], "sathi_plan_code": plan["code"]},
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.post(
+                "https://api.razorpay.com/v1/plans",
+                auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET),
+                json=payload,
+            )
+    except httpx.RequestError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"Could not reach Razorpay: {exc.__class__.__name__}")
+    if response.status_code >= 400:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"Razorpay plan creation failed: {_razorpay_error_message(response)}")
+
+    razorpay_plan = response.json()
+    db = get_db()
+    await db.subscription_plans.update_one(
+        {"_id": ObjectId(plan["id"])},
+        {"$set": {
+            "razorpay_plan_id": razorpay_plan["id"],
+            "razorpay_plan_fingerprint": fingerprint,
+            "razorpay_plan": razorpay_plan,
+            "updated_at": utc_now(),
+        }},
+    )
+    return razorpay_plan["id"]
+
+
+async def create_razorpay_subscription(tenant_id: str, user: dict, plan: dict) -> dict:
+    razorpay_plan_id = await ensure_razorpay_plan(plan)
+    period, interval = _razorpay_plan_period(plan)
+    payload = {
+        "plan_id": razorpay_plan_id,
+        "total_count": _razorpay_total_count(period, interval, plan),
+        "quantity": 1,
+        "customer_notify": True,
+        "notes": {
+            "tenant_id": tenant_id,
+            "user_id": user.get("id", ""),
+            "sathi_plan_id": plan["id"],
+            "sathi_plan_code": plan["code"],
+        },
+    }
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.post(
+                "https://api.razorpay.com/v1/subscriptions",
+                auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET),
+                json=payload,
+            )
+    except httpx.RequestError as exc:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"Could not reach Razorpay: {exc.__class__.__name__}")
+    if response.status_code >= 400:
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"Razorpay subscription creation failed: {_razorpay_error_message(response)}")
+    return response.json()
+
+
+def _datetime_from_unix(value: Any) -> datetime | None:
+    if isinstance(value, (int, float)) and value > 0:
+        return datetime.fromtimestamp(value, timezone.utc)
+    return None
+
+
 def subscription_is_usable(subscription: dict | None) -> bool:
     if not subscription:
         return False
@@ -269,6 +396,9 @@ async def activate_subscription(
     payment_status: str = "paid",
     created_by: str | None = None,
     auto_renew: bool = False,
+    provider_subscription_id: str | None = None,
+    provider_payment_id: str | None = None,
+    provider_payload: dict | None = None,
 ) -> dict:
     db = get_db()
     plan = await get_plan(plan_id)
@@ -301,6 +431,10 @@ async def activate_subscription(
         "grace_until": expires_at + timedelta(days=3) if expires_at else None,
         "auto_renew": auto_renew,
         "payment_status": payment_status,
+        "provider": "razorpay" if provider_subscription_id or provider_payment_id else None,
+        "provider_subscription_id": provider_subscription_id,
+        "provider_payment_id": provider_payment_id,
+        "provider_payload": provider_payload,
         "created_by": created_by,
         "created_at": now,
         "updated_at": now,
@@ -317,6 +451,27 @@ async def activate_subscription(
     )
     doc["_id"] = result.inserted_id
     return serialize_doc(doc)
+
+
+async def activate_subscription_from_razorpay(
+    tenant_id: str,
+    plan_id: str,
+    *,
+    provider_subscription_id: str,
+    provider_payment_id: str | None = None,
+    created_by: str | None = None,
+    provider_payload: dict | None = None,
+) -> dict:
+    return await activate_subscription(
+        tenant_id,
+        plan_id,
+        payment_status="paid",
+        created_by=created_by,
+        auto_renew=True,
+        provider_subscription_id=provider_subscription_id,
+        provider_payment_id=provider_payment_id,
+        provider_payload=provider_payload,
+    )
 
 
 async def log_activity(
