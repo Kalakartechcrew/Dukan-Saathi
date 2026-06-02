@@ -88,7 +88,55 @@ async def create_checkout(
         raise HTTPException(503, "Razorpay key id is invalid. It must start with rzp_test_ or rzp_live_.")
     now = utc_now()
     serialized_plan = serialize_doc(plan)
-    razorpay_subscription = await create_razorpay_subscription(tenant_id, user, serialized_plan)
+    amount_paise = int(round(float(plan.get("price", 0)) * 100))
+    if plan.get("auto_pay_enabled", False):
+        razorpay_subscription = await create_razorpay_subscription(tenant_id, user, serialized_plan)
+        doc = {
+            "tenant_id": tenant_id,
+            "user_id": user["id"],
+            "plan_id": str(plan["_id"]),
+            "plan_code": plan["code"],
+            "amount": plan.get("price", 0),
+            "currency": plan.get("currency", "INR"),
+            "provider": "razorpay",
+            "provider_subscription_id": razorpay_subscription.get("id"),
+            "razorpay_subscription": razorpay_subscription,
+            "status": "created",
+            "payment_mode": "recurring",
+            "created_at": now,
+        }
+        result = await db.subscription_payments.insert_one(doc)
+        doc["_id"] = result.inserted_id
+        return {
+            **serialize_doc(doc),
+            "provider": "razorpay",
+            "payment_mode": "recurring",
+            "key_id": settings.RAZORPAY_KEY_ID,
+            "subscription_id": razorpay_subscription.get("id"),
+            "amount": amount_paise,
+            "currency": plan.get("currency", "INR"),
+            "name": "Sathi Subscription",
+            "description": plan["name"],
+        }
+
+    receipt = f"sub_{tenant_id[-8:]}_{int(now.timestamp())}"
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            razorpay_res = await client.post(
+                "https://api.razorpay.com/v1/orders",
+                auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET),
+                json={
+                    "amount": amount_paise,
+                    "currency": plan.get("currency", "INR"),
+                    "receipt": receipt,
+                    "notes": {"tenant_id": tenant_id, "plan_code": plan["code"]},
+                },
+            )
+    except httpx.RequestError as exc:
+        raise HTTPException(502, f"Could not reach Razorpay: {exc.__class__.__name__}")
+    if razorpay_res.status_code >= 400:
+        raise HTTPException(502, f"Razorpay order creation failed: {_razorpay_error_message(razorpay_res)}")
+    order = razorpay_res.json()
     doc = {
         "tenant_id": tenant_id,
         "user_id": user["id"],
@@ -97,10 +145,10 @@ async def create_checkout(
         "amount": plan.get("price", 0),
         "currency": plan.get("currency", "INR"),
         "provider": "razorpay",
-        "provider_subscription_id": razorpay_subscription.get("id"),
-        "razorpay_subscription": razorpay_subscription,
+        "provider_order_id": order.get("id"),
+        "razorpay_order": order,
         "status": "created",
-        "payment_mode": "recurring",
+        "payment_mode": "one_time",
         "created_at": now,
     }
     result = await db.subscription_payments.insert_one(doc)
@@ -108,10 +156,10 @@ async def create_checkout(
     return {
         **serialize_doc(doc),
         "provider": "razorpay",
-        "payment_mode": "recurring",
+        "payment_mode": "one_time",
         "key_id": settings.RAZORPAY_KEY_ID,
-        "subscription_id": razorpay_subscription.get("id"),
-        "amount": int(round(float(plan.get("price", 0)) * 100)),
+        "order_id": order.get("id"),
+        "amount": amount_paise,
         "currency": plan.get("currency", "INR"),
         "name": "Sathi Subscription",
         "description": plan["name"],

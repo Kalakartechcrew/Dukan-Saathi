@@ -23,6 +23,7 @@ interface Plan {
   duration_days: number
   duration_minutes?: number
   plan_type: string
+  auto_pay_enabled?: boolean
   features: string[]
   limits: Record<string, number | boolean | string | null>
 }
@@ -115,7 +116,7 @@ export function PlanPage() {
           currency: data.currency,
           name: data.name,
           description: data.description,
-          subscription_id: data.subscription_id,
+          ...(data.subscription_id ? { subscription_id: data.subscription_id } : { order_id: data.order_id }),
           prefill: { name: user?.full_name, email: user?.email },
           theme: { color: '#4f46e5' },
           handler: async (response: { razorpay_payment_id: string; razorpay_order_id?: string; razorpay_subscription_id?: string; razorpay_signature: string }) => {
@@ -226,6 +227,7 @@ export function PlanPage() {
                 <div className="mt-5 space-y-2 text-sm">
                   <Feature label={`${limitValue(plan.limits.products)} products`} />
                   <Feature label={`${limitValue(plan.limits.monthly_invoices)} invoices/month`} />
+                  <Feature label={plan.auto_pay_enabled ? 'Automatic renewal enabled' : 'One-time payment'} />
                   {plan.features.slice(0, 5).map((feature) => <Feature key={feature} label={feature.replace(/_/g, ' ')} />)}
                 </div>
                 <Button

@@ -35,6 +35,7 @@ interface Plan {
   is_active: boolean
   allow_resubscribe?: boolean
   is_single_subscribe?: boolean
+  auto_pay_enabled?: boolean
 }
 
 const tabs: Array<{ id: Tab; label: string; icon: LucideIcon }> = [
@@ -58,6 +59,7 @@ const emptyPlan = {
   backup: false,
   allow_resubscribe: false,
   is_single_subscribe: false,
+  auto_pay_enabled: false,
 }
 
 export function AdminPage() {
@@ -105,6 +107,7 @@ export function AdminPage() {
       is_active: true,
       allow_resubscribe: planForm.allow_resubscribe,
       is_single_subscribe: planForm.is_single_subscribe,
+      auto_pay_enabled: planForm.auto_pay_enabled,
       }
       return editingPlanId ? api.patch(`/admin/plans/${editingPlanId}`, payload) : api.post('/admin/plans', payload)
     },
@@ -114,7 +117,11 @@ export function AdminPage() {
       setEditingPlanId('')
       qc.invalidateQueries({ queryKey: ['admin-plans'] })
     },
-    onError: () => toast.error('Could not save plan'),
+    onError: (error: unknown) => {
+      const detail = (error as { response?: { data?: { detail?: string | Array<{ msg?: string }> } } })?.response?.data?.detail
+      const message = Array.isArray(detail) ? detail[0]?.msg : detail
+      toast.error(message || 'Could not save plan')
+    },
   })
 
   const deletePlan = useMutation({
@@ -208,6 +215,7 @@ export function AdminPage() {
       backup: Boolean(plan.limits?.backup),
       allow_resubscribe: Boolean(plan.allow_resubscribe),
       is_single_subscribe: Boolean(plan.is_single_subscribe),
+      auto_pay_enabled: Boolean(plan.auto_pay_enabled),
     })
     setTab('plans')
   }
@@ -332,6 +340,18 @@ export function AdminPage() {
                 />
                 Single subscribe (one subscription per shop)
               </label>
+              <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900/70">
+                <span>
+                  <span className="block font-medium">Enable autopay</span>
+                  <span className="block text-xs text-slate-500">Use Razorpay recurring billing for this paid plan.</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={planForm.auto_pay_enabled}
+                  onChange={(e) => setPlanForm({ ...planForm, auto_pay_enabled: e.target.checked })}
+                  className="h-5 w-5 rounded border-slate-300 text-indigo-600"
+                />
+              </label>
               <div className="grid grid-cols-2 gap-3">
                 <Input label="Products" type="number" value={planForm.products} onChange={(e) => setPlanForm({ ...planForm, products: e.target.value })} />
                 <Input label="Invoices/mo" type="number" value={planForm.monthly_invoices} onChange={(e) => setPlanForm({ ...planForm, monthly_invoices: e.target.value })} />
@@ -364,6 +384,7 @@ export function AdminPage() {
                   <div className="flex flex-wrap justify-end gap-2">
                     <span className={`rounded-full px-2 py-1 text-xs ${plan.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'}`}>{plan.is_active ? 'active' : 'disabled'}</span>
                     <span className={`rounded-full px-2 py-1 text-xs ${plan.allow_resubscribe ? 'bg-indigo-50 text-indigo-600' : 'bg-slate-100 text-slate-500'}`}>{plan.allow_resubscribe ? 'resubscribe on' : 'one time'}</span>
+                    <span className={`rounded-full px-2 py-1 text-xs ${plan.auto_pay_enabled ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-500'}`}>{plan.auto_pay_enabled ? 'autopay on' : 'autopay off'}</span>
                   </div>
                 </div>
                 <p className="mt-4 text-2xl font-bold">{formatCurrency(plan.price)}</p>

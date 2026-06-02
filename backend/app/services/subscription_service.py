@@ -18,6 +18,10 @@ async def ensure_default_plans() -> None:
             {"is_single_subscribe": {"$exists": False}},
             {"$set": {"is_single_subscribe": False, "updated_at": now}},
         )
+        await db.subscription_plans.update_many(
+            {"auto_pay_enabled": {"$exists": False}},
+            {"$set": {"auto_pay_enabled": False, "updated_at": now}},
+        )
         await db.subscription_plans.update_one(
             {"code": "trial"},
             {"$set": {"is_active": False, "updated_at": now}},
@@ -41,6 +45,7 @@ async def ensure_default_plans() -> None:
             },
             "is_active": True,
             "is_single_subscribe": False,
+            "auto_pay_enabled": False,
         },
         {
             "code": "growth",
@@ -59,6 +64,7 @@ async def ensure_default_plans() -> None:
             },
             "is_active": True,
             "is_single_subscribe": False,
+            "auto_pay_enabled": False,
         },
         {
             "code": "annual-growth",
@@ -77,6 +83,7 @@ async def ensure_default_plans() -> None:
             },
             "is_active": True,
             "is_single_subscribe": False,
+            "auto_pay_enabled": False,
         },
     ]
     for plan in plans:
@@ -203,7 +210,13 @@ def _razorpay_error_message(response: httpx.Response) -> str:
 
 def _razorpay_plan_period(plan: dict) -> tuple[str, int]:
     plan_type = str(plan.get("plan_type") or "").lower()
+    duration_minutes = int(plan.get("duration_minutes") or 0)
     duration_days = int(plan.get("duration_days") or 0)
+    if duration_minutes > 0 or duration_days < 7:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            "Razorpay autopay cannot renew minute-based plans. Use one-time checkout, or set plan duration to at least 7 days for autopay.",
+        )
     if plan_type in {"yearly", "annual"} or duration_days >= 365:
         return "yearly", 1
     if plan_type == "quarterly" or 80 <= duration_days <= 100:

@@ -4,7 +4,7 @@ from typing import Annotated, Any, Optional
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.api.deps import get_current_user
 from app.core.database import get_db
@@ -34,6 +34,17 @@ class PlanPayload(BaseModel):
     is_active: bool = True
     allow_resubscribe: bool = False
     is_single_subscribe: bool = False
+    auto_pay_enabled: bool = False
+
+    @model_validator(mode="after")
+    def validate_auto_pay(self):
+        if not self.auto_pay_enabled:
+            return self
+        if self.price <= 0:
+            raise ValueError("Autopay is only available for paid plans.")
+        if self.duration_minutes > 0 or self.duration_days < 7:
+            raise ValueError("Razorpay autopay requires a plan duration of at least 7 days. Minute-based autopay is not supported.")
+        return self
 
 
 class StatusPayload(BaseModel):
