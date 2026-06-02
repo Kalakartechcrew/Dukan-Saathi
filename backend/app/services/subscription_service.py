@@ -14,9 +14,10 @@ async def ensure_default_plans() -> None:
     db = get_db()
     now = utc_now()
     if await db.subscription_plans.count_documents({}) > 0:
+        await db.subscription_plans.update_many({}, {"$unset": {"is_single_subscribe": ""}})
         await db.subscription_plans.update_many(
-            {"is_single_subscribe": {"$exists": False}},
-            {"$set": {"is_single_subscribe": False, "updated_at": now}},
+            {"allow_resubscribe": {"$exists": False}},
+            {"$set": {"allow_resubscribe": True, "updated_at": now}},
         )
         await db.subscription_plans.update_many(
             {"auto_pay_enabled": {"$exists": False}},
@@ -44,7 +45,7 @@ async def ensure_default_plans() -> None:
                 "backup": False,
             },
             "is_active": True,
-            "is_single_subscribe": False,
+            "allow_resubscribe": True,
             "auto_pay_enabled": False,
         },
         {
@@ -63,7 +64,7 @@ async def ensure_default_plans() -> None:
                 "backup": True,
             },
             "is_active": True,
-            "is_single_subscribe": False,
+            "allow_resubscribe": True,
             "auto_pay_enabled": False,
         },
         {
@@ -82,7 +83,7 @@ async def ensure_default_plans() -> None:
                 "backup": True,
             },
             "is_active": True,
-            "is_single_subscribe": False,
+            "allow_resubscribe": True,
             "auto_pay_enabled": False,
         },
     ]
@@ -150,49 +151,21 @@ async def get_plan(plan_code_or_id: str | None) -> dict | None:
     return serialize_doc(plan) if plan else None
 
 
-async def has_used_free_plan(tenant_id: str, plan: dict | None = None) -> bool:
+async def assert_plan_can_be_subscribed(tenant_id: str, plan: dict) -> None:
+    if plan.get("allow_resubscribe", True):
+        return
     db = get_db()
-    shop_query: dict[str, Any] = {"_id": tenant_id}
-    if ObjectId.is_valid(tenant_id):
-        shop_query = {"$or": [{"_id": ObjectId(tenant_id)}, {"_id": tenant_id}]}
-    shop = await db.shops.find_one(shop_query, {"free_plan_used": 1, "free_plan_used_at": 1})
-    if shop and (shop.get("free_plan_used") or shop.get("free_plan_used_at")):
-        return True
-
-    clauses: list[dict[str, Any]] = [
-        {"payment_status": "free"},
-        {"is_free_plan": True},
-        {"free_plan": True},
-    ]
-    if plan:
-        plan_id = plan.get("id") or str(plan.get("_id", ""))
-        plan_code = plan.get("code")
-        if plan_id:
-            clauses.append({"plan_id": plan_id})
-            if ObjectId.is_valid(plan_id):
-                clauses.append({"plan_id": ObjectId(plan_id)})
-        if plan_code:
-            clauses.append({"plan_code": plan_code})
-    return await db.subscriptions.count_documents({
-        "tenant_id": tenant_id,
-        "$or": clauses,
-    }) > 0
-
-
-async def claim_free_plan_once(tenant_id: str, plan: dict | None = None) -> None:
-    if await has_used_free_plan(tenant_id, plan):
-        raise HTTPException(status.HTTP_409_CONFLICT, "Free plan has already been used for this shop. Please choose a paid plan to continue.")
-
-    db = get_db()
-    if not ObjectId.is_valid(tenant_id):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid tenant id")
-    now = utc_now()
-    result = await db.shops.update_one(
-        {"_id": ObjectId(tenant_id), "free_plan_used": {"$ne": True}},
-        {"$set": {"free_plan_used": True, "free_plan_used_at": now, "updated_at": now}},
-    )
-    if result.matched_count == 0:
-        raise HTTPException(status.HTTP_409_CONFLICT, "Free plan has already been used for this shop. Please choose a paid plan to continue.")
+    plan_id = plan.get("id") or str(plan.get("_id", ""))
+    plan_code = plan.get("code")
+    clauses: list[dict[str, Any]] = []
+    if plan_id:
+        clauses.append({"plan_id": plan_id})
+        if ObjectId.is_valid(plan_id):
+            clauses.append({"plan_id": ObjectId(plan_id)})
+    if plan_code:
+        clauses.append({"plan_code": plan_code})
+    if clauses and await db.subscriptions.find_one({"tenant_id": tenant_id, "$or": clauses}):
+        raise HTTPException(status.HTTP_409_CONFLICT, "This plan has already been used for this shop. Please choose another plan.")
 
 
 def _razorpay_error_message(response: httpx.Response) -> str:
@@ -417,13 +390,6 @@ async def activate_subscription(
     plan = await get_plan(plan_id)
     if not plan or not plan.get("is_active", True):
         raise ValueError("Subscription plan is not available")
-    if plan.get("is_single_subscribe", False):
-        existing = await db.subscriptions.find_one({
-            "tenant_id": tenant_id,
-            "$or": [{"plan_id": plan["id"]}, {"plan_code": plan["code"]}],
-        })
-        if existing:
-            raise ValueError("This plan can only be subscribed once per shop.")
     now = utc_now()
     duration_minutes = int(plan.get("duration_minutes") or 0)
     duration_days = int(plan.get("duration_days") or 0)
@@ -456,8 +422,6 @@ async def activate_subscription(
     await db.subscriptions.update_many({"tenant_id": tenant_id, "status": {"$in": ["pending", "trialing", "active", "past_due"]}}, {"$set": {"status": "replaced", "updated_at": now}})
     result = await db.subscriptions.insert_one(doc)
     shop_update = {"subscription_plan": plan["code"], "subscription_status": status_value, "subscription_expires_at": expires_at}
-    if is_free_plan:
-        shop_update.update({"free_plan_used": True, "free_plan_used_at": now})
     await db.shops.update_one(
         {"_id": ObjectId(tenant_id)},
         {"$set": shop_update},

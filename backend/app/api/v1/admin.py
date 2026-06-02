@@ -32,8 +32,7 @@ class PlanPayload(BaseModel):
     features: list[str] = []
     limits: dict[str, Any] = {}
     is_active: bool = True
-    allow_resubscribe: bool = False
-    is_single_subscribe: bool = False
+    allow_resubscribe: bool = True
     auto_pay_enabled: bool = False
 
     @model_validator(mode="after")

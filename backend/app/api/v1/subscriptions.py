@@ -14,7 +14,7 @@ from app.models.base import serialize_doc, utc_now
 from app.services.subscription_service import (
     activate_subscription,
     activate_subscription_from_razorpay,
-    claim_free_plan_once,
+    assert_plan_can_be_subscribed,
     create_razorpay_subscription,
     get_current_subscription,
     get_plan,
@@ -75,9 +75,9 @@ async def create_checkout(
     plan = await db.subscription_plans.find_one(query)
     if not plan or not plan.get("is_active", True):
         raise HTTPException(404, "Plan not found")
+    serialized_plan = serialize_doc(plan)
+    await assert_plan_can_be_subscribed(tenant_id, serialized_plan)
     if float(plan.get("price") or 0) <= 0:
-        if not plan.get("allow_resubscribe", False):
-            await claim_free_plan_once(tenant_id, serialize_doc(plan))
         subscription = await activate_subscription(tenant_id, str(plan["_id"]), payment_status="free", created_by=user["id"])
         return {"message": "Subscription activated", "subscription": subscription}
     if body.provider != "razorpay":
@@ -87,7 +87,6 @@ async def create_checkout(
     if not settings.RAZORPAY_KEY_ID.startswith(("rzp_test_", "rzp_live_")):
         raise HTTPException(503, "Razorpay key id is invalid. It must start with rzp_test_ or rzp_live_.")
     now = utc_now()
-    serialized_plan = serialize_doc(plan)
     amount_paise = int(round(float(plan.get("price", 0)) * 100))
     if plan.get("auto_pay_enabled", False):
         razorpay_subscription = await create_razorpay_subscription(tenant_id, user, serialized_plan)

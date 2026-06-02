@@ -34,7 +34,6 @@ interface Plan {
   limits: Record<string, unknown>
   is_active: boolean
   allow_resubscribe?: boolean
-  is_single_subscribe?: boolean
   auto_pay_enabled?: boolean
 }
 
@@ -57,8 +56,7 @@ const emptyPlan = {
   monthly_invoices: '1000',
   analytics: true,
   backup: false,
-  allow_resubscribe: false,
-  is_single_subscribe: false,
+  allow_resubscribe: true,
   auto_pay_enabled: false,
 }
 
@@ -106,7 +104,6 @@ export function AdminPage() {
       },
       is_active: true,
       allow_resubscribe: planForm.allow_resubscribe,
-      is_single_subscribe: planForm.is_single_subscribe,
       auto_pay_enabled: planForm.auto_pay_enabled,
       }
       return editingPlanId ? api.patch(`/admin/plans/${editingPlanId}`, payload) : api.post('/admin/plans', payload)
@@ -213,8 +210,7 @@ export function AdminPage() {
       monthly_invoices: String(plan.limits?.monthly_invoices || ''),
       analytics: Boolean(plan.limits?.analytics),
       backup: Boolean(plan.limits?.backup),
-      allow_resubscribe: Boolean(plan.allow_resubscribe),
-      is_single_subscribe: Boolean(plan.is_single_subscribe),
+      allow_resubscribe: plan.allow_resubscribe !== false,
       auto_pay_enabled: Boolean(plan.auto_pay_enabled),
     })
     setTab('plans')
@@ -331,15 +327,6 @@ export function AdminPage() {
                 <Input label="Minutes" type="number" value={planForm.duration_minutes} onChange={(e) => setPlanForm({ ...planForm, duration_minutes: e.target.value })} />
               </div>
               <Input label="Features" value={planForm.features} onChange={(e) => setPlanForm({ ...planForm, features: e.target.value })} />
-              <label className="inline-flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                <input
-                  type="checkbox"
-                  checked={planForm.is_single_subscribe}
-                  onChange={(e) => setPlanForm({ ...planForm, is_single_subscribe: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                Single subscribe (one subscription per shop)
-              </label>
               <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900/70">
                 <span>
                   <span className="block font-medium">Enable autopay</span>
@@ -359,7 +346,7 @@ export function AdminPage() {
               <label className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white/70 px-4 py-3 text-sm dark:border-slate-700 dark:bg-slate-900/70">
                 <span>
                   <span className="block font-medium">Allow resubscribe</span>
-                  <span className="block text-xs text-slate-500">When off, this free plan can be used only once per shop.</span>
+                  <span className="block text-xs text-slate-500">When off, this plan can be used only once per shop.</span>
                 </span>
                 <input
                   type="checkbox"
