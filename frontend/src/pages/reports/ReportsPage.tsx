@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { formatCurrency, formatNumber } from '@/lib/utils'
+import { analytics } from '@/lib/analytics'
 
 function currencyTooltip(value: unknown) {
   return formatCurrency(Number(value || 0))
@@ -55,6 +56,7 @@ export function ReportsPage() {
   const report = monthly.data
 
   const openPrintableReport = async () => {
+    analytics.trackEvent('report_generated', { month })
     const res = await api.get('/reports/monthly-business.html', { params: { month }, responseType: 'blob' })
     const url = URL.createObjectURL(new Blob([res.data], { type: 'text/html' }))
     window.open(url, '_blank')

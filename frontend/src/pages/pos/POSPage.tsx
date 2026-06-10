@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { formatCurrency } from '@/lib/utils'
 import { buildUpiPaymentUri, shopHasUpi } from '@/lib/upi'
+import { analytics } from '@/lib/analytics'
 
 interface Product {
   id: string
@@ -113,6 +114,16 @@ export function POSPage() {
     onSuccess: async (invoice) => {
       const customerPhone = customer.phone.trim()
       const shouldSendWhatsapp = customerPhone && sendBillOnWhatsapp && shop?.payment?.whatsapp_bill_enabled !== false
+      
+      // Track Bill Generation
+      analytics.trackEvent('bill_generated', {
+        invoice_id: invoice.id,
+        amount: grandTotal,
+        items_count: cart.length,
+        payment_method: paymentMethod,
+        is_credit: dueAmount > 0
+      })
+
       qc.invalidateQueries({ queryKey: ['dashboard'] })
       qc.invalidateQueries({ queryKey: ['products'] })
       qc.invalidateQueries({ queryKey: ['invoices'] })
@@ -122,6 +133,9 @@ export function POSPage() {
           const { data } = await api.post<{ recipient?: string }>(`/billing/invoices/${invoice.id}/whatsapp-pdf`)
           const recipient = data?.recipient ? ` +${data.recipient}` : ''
           toast.success(`Sale completed. Bill PDF sent on WhatsApp${recipient}`)
+          
+          // Track WhatsApp Click/Success
+          analytics.trackEvent('whatsapp_click', { type: 'pos_bill', invoice_id: invoice.id })
         } else {
           await openInvoice(invoice.id)
           toast.success('Sale completed. Printable invoice opened')

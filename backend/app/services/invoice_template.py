@@ -12,6 +12,16 @@ INVOICE_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  {% if public_view %}
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-KBZPKCNC60"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-KBZPKCNC60');
+  </script>
+  {% endif %}
   <title>Invoice {{ invoice.invoice_number }}</title>
   <style>
     :root { --brand: {{ shop.branding.primary_color or '#4f46e5' }}; --ink: #111827; --muted: #64748b; --line: #e5e7eb; }
@@ -252,6 +262,16 @@ PAYMENT_RECEIPT_HTML = """<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  {% if public_view %}
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-KBZPKCNC60"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-KBZPKCNC60');
+  </script>
+  {% endif %}
   <title>Payment Receipt {{ payment.receipt_number }}</title>
   <style>
     :root { --brand: {{ shop.branding.primary_color or '#4f46e5' }}; --ink: #111827; --muted: #64748b; --line: #e5e7eb; }
@@ -320,9 +340,9 @@ PAYMENT_RECEIPT_HTML = """<!DOCTYPE html>
 </html>"""
 
 
-def render_payment_receipt_html(shop: dict, payment: dict) -> str:
+def render_payment_receipt_html(shop: dict, payment: dict, public_view: bool = False) -> str:
     shop = {"branding": {}, "tax": {}, **(shop or {})}
-    return Template(PAYMENT_RECEIPT_HTML).render(shop=shop, payment=payment or {}, money=_money)
+    return Template(PAYMENT_RECEIPT_HTML).render(shop=shop, payment=payment or {}, money=_money, public_view=public_view)
 
 
 def render_payment_receipt_pdf(shop: dict, payment: dict) -> bytes:

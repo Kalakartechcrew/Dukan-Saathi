@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PasswordField } from '@/components/auth/PasswordField'
 import { useAuthStore } from '@/stores/authStore'
+import { analytics } from '@/lib/analytics'
 
 const BUSINESS_TYPES = [
   'grocery', 'clothing', 'electronics', 'pharmacy', 'hardware', 'furniture',
@@ -82,6 +83,8 @@ export function SignUpPage() {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
       })
       setAuth(user, tokens.access_token, tokens.refresh_token);
+      
+      analytics.trackSignUp('email');
       
       // Clear UTMs from storage after success
       (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as const).forEach(k => sessionStorage.removeItem(k));

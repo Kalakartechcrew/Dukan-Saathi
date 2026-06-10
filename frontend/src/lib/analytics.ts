@@ -1,7 +1,9 @@
 /**
  * Dukan Saathi Unified Analytics Wrapper
- * Supports GA4, GTM, Meta Pixel, and Custom BI
+ * Supports GA4, GTM, and standardized event payloads
  */
+
+import { initializeGTM } from './gtm'
 
 type EventParams = Record<string, unknown>
 
@@ -11,11 +13,12 @@ class Analytics {
   init() {
     if (typeof window === 'undefined' || this.isInitialized) return
     
-    // Google Analytics 4 ID
-    const GA_ID = 'G-KBZPKCNC60'
+    // Initialize GTM
+    initializeGTM()
 
-    // Check if gtag is already initialized (e.g., via index.html)
-    if (!window.gtag) {
+    // Google Analytics 4 (Dual tracking or via GTM)
+    const GA_ID = import.meta.env.VITE_GA4_ID
+    if (GA_ID && !window.gtag) {
       const script = document.createElement('script')
       script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`
       script.async = true
@@ -30,49 +33,91 @@ class Analytics {
     }
 
     this.isInitialized = true
-    console.log('📊 Analytics initialized')
+    if (import.meta.env.DEV) {
+      console.log('📊 Analytics layer initialized')
+    }
   }
 
-  pageView(url: string) {
-    if (typeof window === 'undefined') return
-    window.gtag?.('event', 'page_view', { page_path: url })
-  }
-
-  track(event: string, params: EventParams = {}) {
+  pageView(url: string, title?: string) {
     if (typeof window === 'undefined') return
     
-    // Track in GA4
-    window.gtag?.('event', event, params)
+    // Standard GTM/GA4 Page View
+    this.trackEvent('page_view', {
+      page_path: url,
+      page_title: title || document.title,
+      page_location: window.location.href,
+    })
+  }
 
-    // Track in custom BI if needed
-    console.log(`[Analytics] ${event}`, params)
+  /**
+   * Primary tracking method
+   * Pushes to GTM dataLayer and GA4 gtag
+   */
+  trackEvent(eventName: string, params: EventParams = {}) {
+    if (typeof window === 'undefined') return
+    
+    // Standardized Payload as per requirements
+    const payload = {
+      event: eventName,
+      timestamp: Date.now(),
+      source: 'dukansaathi',
+      ...params,
+    }
+
+    // Push to DataLayer (GTM)
+    window.dataLayer = window.dataLayer || []
+    window.dataLayer.push(payload)
+
+    // Direct GA4 track (if gtag available)
+    if (typeof window.gtag === 'function') {
+      window.gtag('event', eventName, params)
+    }
+
+    // Debugging (Dev only) - No console logs in production
+    if (import.meta.env.DEV) {
+      console.groupCollapsed(`[Analytics] ${eventName}`)
+      console.log('Payload:', payload)
+      console.groupEnd()
+    }
+  }
+
+  // Legacy alias for compatibility
+  track(event: string, params: EventParams = {}) {
+    this.trackEvent(event, params)
   }
 
   // Specialized Events
   trackSignUp(method: string) {
-    this.track('sign_up', { method })
+    this.trackEvent('sign_up', { method })
   }
 
   trackLogin(method: string) {
-    this.track('login', { method })
+    this.trackEvent('login', { method })
   }
 
-  trackPurchase(planId: string, amount: number, currency: string) {
-    this.track('purchase', {
-      transaction_id: `TXN_${Date.now()}`,
+  trackLogout() {
+    this.trackEvent('logout')
+  }
+
+  trackPurchase(planId: string, amount: number, currency: string, transactionId?: string) {
+    this.trackEvent('purchase', {
+      transaction_id: transactionId || `TXN_${Date.now()}`,
       value: amount,
       currency: currency,
+      plan_name: planId,
       items: [{ item_id: planId, item_name: planId }]
     })
   }
 }
 
-// Global declaration for window.gtag
+// Global declaration for window.gtag and dataLayer
 declare global {
   interface Window {
-    dataLayer: unknown[]
-    gtag: (...args: unknown[]) => void
+    dataLayer: any[]
+    gtag: (...args: any[]) => void
+    gtmInitialized?: boolean
   }
 }
 
 export const analytics = new Analytics()
+export default analytics

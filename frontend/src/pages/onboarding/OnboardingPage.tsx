@@ -6,6 +6,7 @@ import api from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
+import { analytics } from '@/lib/analytics'
 
 const STEPS = ['Business', 'Location', 'Tax', 'Done']
 
@@ -54,6 +55,7 @@ export function OnboardingPage() {
         },
       })
       toast.success('Shop setup complete!')
+      analytics.trackEvent('start_trial')
       navigate('/dashboard')
     } catch {
       toast.error('Setup failed')

@@ -22,9 +22,26 @@ export function LandingTemplate({
   features,
   faqs
 }: LandingTemplateProps) {
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(faq => ({
+      "@type": "Question",
+      "name": faq.q,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.a
+      }
+    }))
+  }
+
   return (
     <PublicLayout>
-      <SEO title={title} description={description} />
+      <SEO 
+        title={title} 
+        description={description} 
+        jsonLd={[faqSchema]}
+      />
       
       {/* Hero */}
       <section className="relative overflow-hidden bg-slate-900 py-24 text-white lg:py-32">

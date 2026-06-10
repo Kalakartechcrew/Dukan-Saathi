@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { PublicLayout } from '@/components/layout/PublicLayout'
 import { SEO } from '@/components/seo/SEO'
 import { motion } from 'framer-motion'
+import { analytics } from '@/lib/analytics'
 import { 
   CreditCard, 
   Package, 
@@ -14,6 +16,10 @@ import {
 } from 'lucide-react'
 
 export function FeaturesPage() {
+  useEffect(() => {
+    analytics.trackEvent('view_features')
+  }, [])
+
   const features = [
     {
       name: 'Advanced POS System',

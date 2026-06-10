@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
 import { useAuthStore } from '@/stores/authStore'
 import { formatCurrency } from '@/lib/utils'
+import { analytics } from '@/lib/analytics'
 
 declare global {
   interface Window {
@@ -99,8 +100,9 @@ export function SubscribePage() {
         rz.open()
       })
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       toast.success('Subscription activated')
+      analytics.trackPurchase(variables.id, variables.price, variables.currency)
       navigate('/plan', { replace: true })
     },
     onError: (error: unknown) => {

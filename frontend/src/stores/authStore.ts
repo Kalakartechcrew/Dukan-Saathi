@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { analytics } from '@/lib/analytics'
 
 export interface User {
   id: string
@@ -35,7 +36,10 @@ export const useAuthStore = create<AuthState>()(
       setTokens: (accessToken, refreshToken) => set({ accessToken, refreshToken, lastActivityAt: Date.now() }),
       setUser: (user) => set({ user }),
       touchActivity: () => set({ lastActivityAt: Date.now() }),
-      logout: () => set({ user: null, accessToken: null, refreshToken: null, lastActivityAt: null }),
+      logout: () => {
+        analytics.trackLogout()
+        set({ user: null, accessToken: null, refreshToken: null, lastActivityAt: null })
+      },
       isAuthenticated: () => !!get().accessToken,
     }),
     { name: 'sathi-auth' }

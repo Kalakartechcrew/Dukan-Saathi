@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { PasswordField } from '@/components/auth/PasswordField'
 import { useAuthStore } from '@/stores/authStore'
+import { analytics } from '@/lib/analytics'
 
 const schema = z.object({
   email: z.string().email(),
@@ -33,6 +34,7 @@ export function LoginPage() {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
       })
       setAuth(user, tokens.access_token, tokens.refresh_token)
+      analytics.trackLogin('email')
       toast.success('Welcome back!')
       navigate('/dashboard')
     } catch (error: unknown) {

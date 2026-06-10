@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { formatCurrency, formatISTDateTime } from '@/lib/utils'
 import { buildUpiPaymentUri, shopHasUpi } from '@/lib/upi'
+import { analytics } from '@/lib/analytics'
 
 interface Invoice {
   id: string
@@ -111,6 +112,9 @@ export function InvoicesPage() {
     try {
       const res = await api.post<{ recipient?: string }>(`/billing/invoices/${invoiceId}/whatsapp-pdf`)
       toast.success(`Bill PDF sent on WhatsApp to +${res.data?.recipient || phone}`)
+
+      // Track WhatsApp Success
+      analytics.trackEvent('whatsapp_click', { type: 'invoice_share', invoice_id: invoiceId })
       return
     } catch (error) {
       const status = (error as { response?: { status?: number } })?.response?.status
@@ -126,10 +130,12 @@ export function InvoicesPage() {
     const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean }
     if (navigator.share && (!nav.canShare || nav.canShare(shareData))) {
       await navigator.share(shareData)
+      analytics.trackEvent('whatsapp_click', { type: 'native_share', invoice_id: invoiceId })
       return
     }
     downloadFile(pdf)
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank')
+    analytics.trackEvent('whatsapp_click', { type: 'wa_me_link', invoice_id: invoiceId })
     toast('WhatsApp API is not connected. PDF downloaded; attach it manually in WhatsApp.')
   }
 

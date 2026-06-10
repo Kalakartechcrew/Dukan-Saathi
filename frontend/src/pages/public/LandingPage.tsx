@@ -64,9 +64,44 @@ export function LandingPage() {
     { label: 'Countries', value: '5+', icon: Globe },
   ]
 
+  const faqs = [
+    { q: "What is Dukan Saathi?", a: "Dukan Saathi is an all-in-one shop management software designed for modern retailers. It combines POS billing, inventory management, GST invoicing, and customer tracking into one easy-to-use platform." },
+    { q: "Who should use Dukan Saathi?", a: "Our software is built for retail shop owners, grocery stores, pharmacies, electronic shops, garment stores, and any small to medium business that needs to track stock and sales." },
+    { q: "Is Dukan Saathi GST-compliant?", a: "Yes, Dukan Saathi generates GST-ready invoices, tracks HSN codes, and provides reports that make GST filing easy for Indian businesses." },
+    { q: "Does it work offline?", a: "The POS system is designed to handle temporary internet outages, allowing you to continue billing. Data syncs automatically once the connection is restored." },
+    { q: "Can I use it on my mobile?", a: "Absolutely. Dukan Saathi is cloud-based and works perfectly on smartphones, tablets, and computers." },
+    { q: "How do I share bills on WhatsApp?", a: "You can send professional PDF invoices directly to your customer's WhatsApp number with a single click, without even saving their contact." },
+    { q: "Can I import my existing product data?", a: "Yes, you can easily bulk import your products from an Excel or CSV file in minutes." },
+    { q: "Is my data secure?", a: "We use bank-level encryption and perform daily backups to ensure your business data is always safe and private." },
+    { q: "Does it support barcode scanning?", a: "Yes, Dukan Saathi works with all standard USB and Bluetooth barcode scanners, as well as smartphone cameras." },
+    { q: "Can I manage multiple shops?", a: "Yes, our Business plan allows you to manage multiple locations and view consolidated reports from a single dashboard." },
+    { q: "How do low stock alerts work?", a: "You can set custom reorder levels for each product. The system will notify you when stock falls below those levels." },
+    { q: "What kind of reports can I generate?", a: "You get 50+ reports including daily sales, profit/loss, expense tracking, stock value, and top-selling products." },
+    { q: "Is there a free trial?", a: "Yes, we offer a 14-day free trial of our premium features. No credit card is required to sign up." },
+    { q: "Can I track customer credit (Udhaar)?", a: "Yes, our integrated CRM tracks customer purchase history and outstanding balances with automated reminders." },
+    { q: "What hardware do I need?", a: "Dukan Saathi runs on any device with a browser. It supports thermal receipt printers, laser printers, and barcode scanners." }
+  ]
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": faqs.map(faq => ({
+      "@type": "Question",
+      "name": faq.q,
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": faq.a
+      }
+    }))
+  }
+
   return (
     <PublicLayout>
-      <SEO title="Dukan Saathi — Smart POS & Inventory Management for Retail" />
+      <SEO 
+        title="Dukan Saathi | Inventory, Billing & Shop Management Software" 
+        description="Manage inventory, billing, GST invoices, stock tracking and retail operations with Dukan Saathi. Built for modern shop owners and smart retailers."
+        jsonLd={[faqSchema]}
+      />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-16 pb-24 lg:pt-32 lg:pb-40">
@@ -193,6 +228,81 @@ export function LandingPage() {
                 </motion.div>
               ))}
             </dl>
+          </div>
+        </div>
+      </section>
+
+      {/* SEO Content Section */}
+      <section className="py-24 bg-white border-y border-slate-100">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-start">
+            <div>
+              <h2 className="text-3xl font-bold text-slate-900 mb-6">Why Choose Dukan Saathi for Your Retail Business?</h2>
+              <p className="text-slate-600 mb-4">
+                Dukan Saathi is more than just billing software. It's a complete <strong>retail automation platform</strong> designed to give shopkeepers more time and better control over their business. From <strong>smart inventory management</strong> to <strong>instant WhatsApp billing</strong>, every feature is built with the Indian shop owner in mind.
+              </p>
+              <ul className="space-y-4">
+                <li className="flex items-start gap-3">
+                  <div className="mt-1 h-5 w-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 className="h-3 w-3 text-indigo-600" />
+                  </div>
+                  <span className="text-slate-700"><strong>GST Ready:</strong> Automate tax calculations and generate GST-compliant invoices effortlessly.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="mt-1 h-5 w-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 className="h-3 w-3 text-indigo-600" />
+                  </div>
+                  <span className="text-slate-700"><strong>Stock Precision:</strong> Reduce losses with real-time stock tracking and low-stock alerts.</span>
+                </li>
+                <li className="flex items-start gap-3">
+                  <div className="mt-1 h-5 w-5 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0">
+                    <CheckCircle2 className="h-3 w-3 text-indigo-600" />
+                  </div>
+                  <span className="text-slate-700"><strong>Customer Loyalty:</strong> Track customer history and manage credit (Udhaar) in one unified system.</span>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-slate-900 mb-6">Built for Modern Smart Retailers</h2>
+              <p className="text-slate-600 mb-4">
+                Whether you run a <strong>grocery store (Kirana)</strong>, a <strong>pharmacy</strong>, or a <strong>garment showroom</strong>, Dukan Saathi adapts to your needs. Our cloud-based system ensures you can monitor your shop's performance from home or while traveling.
+              </p>
+              <div className="grid grid-cols-2 gap-4 mt-8">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <h4 className="font-bold text-indigo-600">50+ Reports</h4>
+                  <p className="text-xs text-slate-500 mt-1">Detailed insights into sales, profit, and stock value.</p>
+                </div>
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                  <h4 className="font-bold text-indigo-600">Multi-User</h4>
+                  <p className="text-xs text-slate-500 mt-1">Separate logins for staff with controlled permissions.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-24 bg-slate-50">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
+            <p className="mt-4 text-slate-600">Find quick answers to common questions about Dukan Saathi.</p>
+          </div>
+          <div className="mx-auto max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+            {faqs.slice(0, 10).map((faq, i) => (
+              <div key={i} className="flex flex-col">
+                <dt className="font-bold text-slate-900 text-lg mb-2">{faq.q}</dt>
+                <dd className="text-slate-600 leading-relaxed">{faq.a}</dd>
+              </div>
+            ))}
+          </div>
+          <div className="mt-12 text-center">
+            <Link to="/faq">
+              <Button variant="ghost" className="text-indigo-600 font-bold hover:text-indigo-700">
+                View All 50+ FAQs <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>

@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { Skeleton } from '@/components/ui/Skeleton'
 import { formatCurrency } from '@/lib/utils'
+import { analytics } from '@/lib/analytics'
 
 interface ProductRow {
   id: string
@@ -163,6 +164,7 @@ export function InventoryPage() {
     }),
     onSuccess: () => {
       toast.success('Product added')
+      analytics.trackEvent('inventory_created', { name: form.name, price: parseFloat(form.selling_price) })
       setShowForm(false)
       setForm({ name: '', selling_price: '', buying_price: '', quantity: '', unit: 'piece' })
       qc.invalidateQueries({ queryKey: ['products'] })
@@ -180,6 +182,7 @@ export function InventoryPage() {
     }))),
     onSuccess: (res) => {
       toast.success(`${res.data.length} products imported`)
+      analytics.trackEvent('inventory_created', { count: res.data.length, method: 'bulk_import' })
       qc.invalidateQueries({ queryKey: ['products'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })
     },
@@ -204,6 +207,7 @@ export function InventoryPage() {
     },
     onSuccess: () => {
       toast.success('Product updated')
+      analytics.trackEvent('inventory_updated', { name: editing?.name })
       setEditing(null)
       qc.invalidateQueries({ queryKey: ['products'] })
       qc.invalidateQueries({ queryKey: ['dashboard'] })

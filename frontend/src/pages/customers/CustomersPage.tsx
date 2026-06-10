@@ -9,6 +9,7 @@ import { Card } from '@/components/ui/Card'
 import { Input } from '@/components/ui/Input'
 import { formatCurrency, formatISTDateTime } from '@/lib/utils'
 import { buildUpiPaymentUri, shopHasUpi } from '@/lib/upi'
+import { analytics } from '@/lib/analytics'
 
 interface Customer {
   id: string
@@ -71,6 +72,7 @@ export function CustomersPage() {
     mutationFn: () => api.post('/customers', { name, phone }),
     onSuccess: () => {
       toast.success('Customer added')
+      analytics.trackEvent('customer_created', { name, phone })
       setName('')
       setPhone('')
       qc.invalidateQueries({ queryKey: ['customers'] })
@@ -97,6 +99,7 @@ export function CustomersPage() {
         try {
           const share = await api.post<{ recipient?: string }>(`/customers/payments/${paymentId}/whatsapp-pdf`)
           toast.success(`Payment receipt sent on WhatsApp to +${share.data?.recipient || phone}`)
+          analytics.trackEvent('whatsapp_click', { type: 'customer_payment_receipt', payment_id: paymentId })
         } catch (error) {
           const detail = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail
           toast.error(detail || 'Payment saved, but receipt could not be sent on WhatsApp')

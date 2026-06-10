@@ -1,8 +1,10 @@
+import { useEffect } from 'react'
 import { PublicLayout } from '@/components/layout/PublicLayout'
 import { SEO } from '@/components/seo/SEO'
 import { Check } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Link } from 'react-router-dom'
+import { analytics } from '@/lib/analytics'
 
 const plans = [
   {
@@ -35,6 +37,14 @@ const plans = [
 ]
 
 export function PricingPage() {
+  useEffect(() => {
+    analytics.trackEvent('view_pricing')
+  }, [])
+
+  const handleContactSales = () => {
+    analytics.trackEvent('generate_lead', { type: 'enterprise_contact' })
+  }
+
   return (
     <PublicLayout>
       <SEO 
@@ -80,7 +90,7 @@ export function PricingPage() {
               </div>
               <div className="mt-8">
                 {plan.name === 'Enterprise' ? (
-                  <a href="mailto:work.kalakartechcrew@gmail.com">
+                  <a href="mailto:work.kalakartechcrew@gmail.com" onClick={handleContactSales}>
                     <Button className="w-full bg-white text-slate-900 border border-slate-200 hover:bg-slate-50">
                       Contact Sales
                     </Button>
@@ -106,7 +116,7 @@ export function PricingPage() {
         <div className="mx-auto max-w-7xl rounded-3xl bg-indigo-50 p-8 text-center dark:bg-slate-900">
           <p className="text-indigo-700 font-medium dark:text-indigo-300">
             Need a tailored solution for your retail chain? 
-            <a href="mailto:work.kalakartechcrew@gmail.com" className="ml-2 underline font-bold">Email us at work.kalakartechcrew@gmail.com</a>
+            <a href="mailto:work.kalakartechcrew@gmail.com" className="ml-2 underline font-bold" onClick={handleContactSales}>Email us at work.kalakartechcrew@gmail.com</a>
           </p>
         </div>
       </section>
