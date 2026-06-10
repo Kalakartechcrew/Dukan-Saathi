@@ -7,7 +7,7 @@ export function AboutPage() {
     <PublicLayout>
       <SEO 
         title="About Us - Our Mission to Empower Shopkeepers" 
-        description="Learn about Dukan Saathi's journey, our mission to digitalize retail in India, and the team behind the smart shop management platform."
+        description="Learn about Sathi's journey, our mission to digitalize retail in India, and the team behind the smart shop management platform."
       />
       
       <div className="bg-white py-24 sm:py-32">
@@ -21,7 +21,7 @@ export function AboutPage() {
               Empowering the backbone of retail.
             </motion.h1>
             <p className="mt-6 text-xl leading-8 text-slate-600">
-              Dukan Saathi was born out of a simple observation: while the world was going digital, the local shopkeeper was being left behind with paper ledgers and complex, expensive software.
+              Sathi was born out of a simple observation: while the world was going digital, the local shopkeeper was being left behind with paper ledgers and complex, expensive software.
             </p>
           </div>
 
@@ -49,9 +49,9 @@ export function AboutPage() {
             </section>
 
             <section>
-              <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Why Dukan Saathi?</h2>
+              <h2 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">Why Sathi?</h2>
               <p className="mt-6">
-                Unlike traditional software that requires heavy installation and expensive hardware, Dukan Saathi is cloud-native. This means:
+                Unlike traditional software that requires heavy installation and expensive hardware, Sathi is cloud-native. This means:
               </p>
               <div className="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2">
                 <div className="rounded-2xl bg-slate-50 p-8">
@@ -78,7 +78,7 @@ export function AboutPage() {
               <p className="mt-6 italic">
                 "Digitalization is not a luxury anymore; it's a survival necessity. Our goal is to ensure that no small business owner ever has to close shop because they couldn't compete with the efficiency of big e-commerce players."
               </p>
-              <p className="mt-4 font-semibold text-slate-900">— The Dukan Saathi Team</p>
+              <p className="mt-4 font-semibold text-slate-900">— The Sathi Team</p>
             </section>
           </div>
         </div>

@@ -92,7 +92,7 @@ export function FAQPage() {
       <section className="bg-slate-50 py-20 px-6 lg:px-8">
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="text-4xl font-black text-slate-900 sm:text-5xl">Frequently Asked Questions</h1>
-          <p className="mt-4 text-lg text-slate-600">Everything you need to know about Dukan Saathi.</p>
+          <p className="mt-4 text-lg text-slate-600">Everything you need to know about Sathi.</p>
         </div>
       </section>
 

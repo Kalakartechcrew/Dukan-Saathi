@@ -41,7 +41,7 @@ export function SecurityPage() {
     <PublicLayout>
       <SEO 
         title="Security & Data Protection - Your Business is Safe" 
-        description="Discover how Dukan Saathi protects your shop data with enterprise-grade encryption, secure cloud infrastructure, and real-time backups."
+        description="Discover how Sathi protects your shop data with enterprise-grade encryption, secure cloud infrastructure, and real-time backups."
       />
       
       <div className="relative isolate bg-white py-24 sm:py-32">
@@ -50,7 +50,7 @@ export function SecurityPage() {
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-base font-semibold leading-7 text-emerald-600"
+              className="text-base font-semibold leading-7 text-indigo-600"
             >
               Enterprise-Grade Security
             </motion.h1>
@@ -58,7 +58,7 @@ export function SecurityPage() {
               We take the safety of your business personally
             </p>
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              Running a business is hard enough without worrying about data loss or theft. Dukan Saathi uses the same security standards as global banks to ensure your data is always protected.
+              Running a business is hard enough without worrying about data loss or theft. Sathi uses the same security standards as global banks to ensure your data is always protected.
             </p>
           </div>
 
@@ -67,7 +67,7 @@ export function SecurityPage() {
               {securityFeatures.map((feature) => (
                 <div key={feature.title} className="flex flex-col">
                   <dt className="flex items-center gap-x-3 text-lg font-bold leading-7 text-slate-900">
-                    <feature.icon className="h-6 w-6 flex-none text-emerald-600" aria-hidden="true" />
+                    <feature.icon className="h-6 w-6 flex-none text-indigo-600" aria-hidden="true" />
                     {feature.title}
                   </dt>
                   <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-slate-600">
@@ -89,7 +89,7 @@ export function SecurityPage() {
               <div className="mt-10 space-y-8 text-slate-300">
                 <div>
                   <h3 className="text-xl font-semibold text-white">99.99% Uptime Guarantee</h3>
-                  <p className="mt-2">Our infrastructure is hosted on world-class data centers (AWS/Google Cloud) with multi-region redundancy. Your business never stops, and neither does Dukan Saathi.</p>
+                  <p className="mt-2">Our infrastructure is hosted on world-class data centers (AWS/Google Cloud) with multi-region redundancy. Your business never stops, and neither does Sathi.</p>
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold text-white">DDoS Protection</h3>
@@ -102,14 +102,14 @@ export function SecurityPage() {
               </div>
             </div>
             <div className="relative">
-              <div className="absolute -inset-4 rounded-3xl bg-emerald-500/10 blur-2xl" />
+              <div className="absolute -inset-4 rounded-3xl bg-indigo-500/10 blur-2xl" />
               <div className="relative rounded-2xl bg-slate-800 p-8 border border-slate-700">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="h-3 w-3 rounded-full bg-red-500" />
                   <div className="h-3 w-3 rounded-full bg-yellow-500" />
                   <div className="h-3 w-3 rounded-full bg-green-500" />
                 </div>
-                <div className="space-y-4 font-mono text-sm text-emerald-400">
+                <div className="space-y-4 font-mono text-sm text-indigo-400">
                   <p>{">"} initializing_secure_handshake...</p>
                   <p>{">"} verifying_ssl_certificates... [OK]</p>
                   <p>{">"} aes_256_encryption_active</p>

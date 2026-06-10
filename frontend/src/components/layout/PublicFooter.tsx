@@ -38,11 +38,13 @@ export function PublicFooter() {
         <div className="xl:grid xl:grid-cols-3 xl:gap-8">
           <div className="space-y-8">
             <Link to="/" className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-lg bg-emerald-500 text-lg font-black text-slate-950">S</span>
-              <span className="text-xl font-bold text-white">Dukan Saathi</span>
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-lg shadow-indigo-500/20">
+                <span className="text-xl font-bold text-white">S</span>
+              </div>
+              <span className="text-xl font-bold text-white">Sathi</span>
             </Link>
             <p className="text-sm leading-6">
-              Smart inventory and billing management for modern shopkeepers. Streamline your retail business with Dukan Saathi.
+              Smart inventory and billing management for modern shopkeepers. Streamline your retail business with Sathi.
             </p>
             <div className="flex space-x-6">
               {/* Social icons could go here */}

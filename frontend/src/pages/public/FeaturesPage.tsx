@@ -9,7 +9,8 @@ import {
   Users, 
   ShieldCheck,
   Smartphone,
-  Cloud
+  Cloud,
+  Zap
 } from 'lucide-react'
 
 export function FeaturesPage() {
@@ -86,16 +87,16 @@ export function FeaturesPage() {
     <PublicLayout>
       <SEO 
         title="Features - Complete Retail Management Toolkit" 
-        description="Explore the powerful features of Dukan Saathi including POS, Inventory, GST Billing, Reports, and Customer Management. Everything your shop needs."
+        description="Explore the powerful features of Sathi including POS, Inventory, GST Billing, Reports, and Customer Management. Everything your shop needs."
       />
       
       <div className="bg-slate-50 py-24 sm:py-32">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl lg:text-center">
+          <div className="mx-auto max-w-2xl lg:text-center mb-16">
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="text-base font-semibold leading-7 text-emerald-600"
+              className="text-base font-semibold leading-7 text-indigo-600"
             >
               Power Your Business
             </motion.h1>
@@ -103,16 +104,34 @@ export function FeaturesPage() {
               Everything you need to manage your shop like a pro
             </p>
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              Stop using multiple apps and paper ledgers. Dukan Saathi brings all your retail operations into one unified, easy-to-use platform.
+              Stop using multiple apps and paper ledgers. Sathi brings all your retail operations into one unified, easy-to-use platform.
             </p>
           </div>
+
+          {/* Splash Image */}
+          <motion.div 
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
+            className="mx-auto max-w-5xl mb-24"
+          >
+            <div className="relative rounded-2xl bg-slate-900/5 p-2 ring-1 ring-inset ring-slate-900/10 lg:-m-4 lg:rounded-3xl lg:p-4">
+              <div className="rounded-xl bg-white shadow-2xl ring-1 ring-slate-900/10 overflow-hidden">
+                <img
+                  src="/ss1.png"
+                  alt="Sathi Features Preview"
+                  className="w-full h-auto max-h-[600px] object-cover object-top"
+                />
+              </div>
+            </div>
+          </motion.div>
 
           <div className="mx-auto mt-16 max-w-2xl sm:mt-20 lg:mt-24 lg:max-w-none">
             <dl className="grid max-w-xl grid-cols-1 gap-x-8 gap-y-16 lg:max-w-none lg:grid-cols-3">
               {features.map((feature) => (
                 <div key={feature.name} className="flex flex-col bg-white p-8 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
                   <dt className="flex items-center gap-x-3 text-lg font-bold leading-7 text-slate-900">
-                    <feature.icon className="h-6 w-6 flex-none text-emerald-600" aria-hidden="true" />
+                    <feature.icon className="h-6 w-6 flex-none text-indigo-600" aria-hidden="true" />
                     {feature.name}
                   </dt>
                   <dd className="mt-4 flex flex-auto flex-col text-base leading-7 text-slate-600">
@@ -120,7 +139,7 @@ export function FeaturesPage() {
                     <ul className="mt-6 space-y-2">
                       {feature.details.map((detail) => (
                         <li key={detail} className="flex items-start gap-x-2 text-sm text-slate-500">
-                          <span className="mt-1.5 h-1.5 w-1.5 flex-none rounded-full bg-emerald-500" />
+                          <span className="mt-1.5 h-1.5 w-1.5 flex-none rounded-full bg-indigo-500" />
                           {detail}
                         </li>
                       ))}
@@ -134,7 +153,7 @@ export function FeaturesPage() {
       </div>
 
       {/* Deep Dive Sections */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-white overflow-hidden">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
@@ -144,8 +163,8 @@ export function FeaturesPage() {
               </p>
               <div className="mt-10 space-y-4">
                 <div className="flex gap-4">
-                  <div className="flex-none rounded-lg bg-emerald-50 p-2 h-10 w-10 flex items-center justify-center">
-                    <Smartphone className="text-emerald-600" />
+                  <div className="flex-none rounded-lg bg-indigo-50 p-2 h-10 w-10 flex items-center justify-center">
+                    <Smartphone className="text-indigo-600" />
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900">Mobile POS</h3>
@@ -153,8 +172,8 @@ export function FeaturesPage() {
                   </div>
                 </div>
                 <div className="flex gap-4">
-                  <div className="flex-none rounded-lg bg-emerald-50 p-2 h-10 w-10 flex items-center justify-center">
-                    <Cloud className="text-emerald-600" />
+                  <div className="flex-none rounded-lg bg-indigo-50 p-2 h-10 w-10 flex items-center justify-center">
+                    <Cloud className="text-indigo-600" />
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900">Offline Capability</h3>
@@ -163,8 +182,14 @@ export function FeaturesPage() {
                 </div>
               </div>
             </div>
-            <div className="bg-slate-100 rounded-3xl aspect-video flex items-center justify-center border-2 border-dashed border-slate-300">
-              <span className="text-slate-400 font-medium">Interactive POS Preview Graphic</span>
+            <div className="bg-indigo-600/5 rounded-3xl p-8 lg:p-12 flex items-center justify-center border border-indigo-100">
+              <div className="text-center">
+                <div className="inline-flex h-16 w-16 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 mb-6">
+                  <Zap className="h-8 w-8" />
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900">Blazing Fast Performance</h3>
+                <p className="mt-4 text-slate-600 max-w-sm">Experience the speed of a native app with the convenience of the cloud.</p>
+              </div>
             </div>
           </div>
         </div>
