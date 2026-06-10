@@ -10,7 +10,7 @@ const faqCategories = [
     questions: [
       { q: 'How do I add products to my inventory?', a: 'You can add products manually through the Inventory dashboard or use our bulk upload feature to import an entire list from a CSV or Excel file.' },
       { q: 'Can I track stock across multiple locations?', a: 'Yes, Dukan Saathi supports multi-location stock tracking. You can see consolidated stock or filter by specific shop branches.' },
-      { q: 'Does it support barcode scanning?', a: 'Absolutely. Sathi works with all standard USB and Bluetooth barcode scanners. You can also use your smartphone camera to scan items in the mobile app.' },
+      { q: 'Does it support barcode scanning?', a: 'Absolutely. Dukan Saathi works with all standard USB and Bluetooth barcode scanners. You can also use your smartphone camera to scan items in the mobile app.' },
       { q: 'How do low stock alerts work?', a: 'You can set a minimum stock level for each item. When the quantity falls below this level, you will receive a notification and see the item highlighted in your dashboard.' },
       { q: 'Can I track product expiry dates?', a: 'Yes, the system allows you to record batch numbers and expiry dates, which is especially useful for pharmacies and grocery stores.' },
     ]
@@ -18,7 +18,7 @@ const faqCategories = [
   {
     name: 'Billing & POS',
     questions: [
-      { q: 'Can I generate GST-compliant invoices?', a: 'Yes, Sathi is fully GST-ready. It automatically calculates CGST, SGST, and IGST based on your shop location and the customer\'s state.' },
+      { q: 'Can I generate GST-compliant invoices?', a: 'Yes, Dukan Saathi is fully GST-ready. It automatically calculates CGST, SGST, and IGST based on your shop location and the customer\'s state.' },
       { q: 'Does it support split payments?', a: 'Yes, our POS allows customers to pay using a combination of Cash, Card, and UPI for a single bill.' },
       { q: 'How do I share bills on WhatsApp?', a: 'After every sale, you can instantly send the bill PDF to the customer\'s WhatsApp number with a single click. No need to save their contact first.' },
       { q: 'What kind of printers are supported?', a: 'We support standard A4/A5 laser printers and all popular thermal receipt printers (2-inch and 3-inch models).' },
@@ -92,7 +92,7 @@ export function FAQPage() {
       <section className="bg-slate-50 py-20 px-6 lg:px-8">
         <div className="mx-auto max-w-4xl text-center">
           <h1 className="text-4xl font-black text-slate-900 sm:text-5xl">Frequently Asked Questions</h1>
-          <p className="mt-4 text-lg text-slate-600">Everything you need to know about Sathi.</p>
+          <p className="mt-4 text-lg text-slate-600">Everything you need to know about Dukan Saathi.</p>
         </div>
       </section>
 

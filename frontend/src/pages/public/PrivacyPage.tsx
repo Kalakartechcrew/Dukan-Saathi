@@ -94,7 +94,7 @@ export function PrivacyPage() {
             <section>
               <h2 className="text-2xl font-bold text-slate-900">8. Contact Us</h2>
               <p>
-                If you have any questions or suggestions about our Privacy Policy, do not hesitate to contact us at <strong>privacy@sathi.app</strong>.
+                If you have any questions or suggestions about our Privacy Policy, do not hesitate to contact us at <strong>privacy@dukansaathi.shop</strong>.
               </p>
             </section>
           </div>

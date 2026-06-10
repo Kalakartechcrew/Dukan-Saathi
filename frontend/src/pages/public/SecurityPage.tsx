@@ -41,7 +41,7 @@ export function SecurityPage() {
     <PublicLayout>
       <SEO 
         title="Security & Data Protection - Your Business is Safe" 
-        description="Discover how Sathi protects your shop data with enterprise-grade encryption, secure cloud infrastructure, and real-time backups."
+        description="Discover how Dukan Saathi protects your shop data with enterprise-grade encryption, secure cloud infrastructure, and real-time backups."
       />
       
       <div className="relative isolate bg-white py-24 sm:py-32">
@@ -58,7 +58,7 @@ export function SecurityPage() {
               We take the safety of your business personally
             </p>
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              Running a business is hard enough without worrying about data loss or theft. Sathi uses the same security standards as global banks to ensure your data is always protected.
+              Running a business is hard enough without worrying about data loss or theft. Dukan Saathi uses the same security standards as global banks to ensure your data is always protected.
             </p>
           </div>
 
@@ -89,7 +89,7 @@ export function SecurityPage() {
               <div className="mt-10 space-y-8 text-slate-300">
                 <div>
                   <h3 className="text-xl font-semibold text-white">99.99% Uptime Guarantee</h3>
-                  <p className="mt-2">Our infrastructure is hosted on world-class data centers (AWS/Google Cloud) with multi-region redundancy. Your business never stops, and neither does Sathi.</p>
+                  <p className="mt-2">Our infrastructure is hosted on world-class data centers (AWS/Google Cloud) with multi-region redundancy. Your business never stops, and neither does Dukan Saathi.</p>
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold text-white">DDoS Protection</h3>

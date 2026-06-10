@@ -9,7 +9,7 @@ export function PublicHeader() {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-lg shadow-indigo-200">
             <span className="text-xl font-bold text-white">S</span>
           </div>
-          <span className="text-2xl font-bold tracking-tight text-slate-900">Sathi</span>
+          <span className="text-2xl font-bold tracking-tight text-slate-900">Dukan Saathi</span>
         </Link>
         
         <nav className="hidden md:flex items-center gap-x-10">

@@ -99,7 +99,7 @@ export function SignUpPage() {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen px-4 py-12">
       <div className="mx-auto max-w-lg">
-        <h1 className="text-3xl font-bold gradient-text">Start your shop on Sathi</h1>
+        <h1 className="text-3xl font-bold gradient-text">Start your shop on Dukan Saathi</h1>
         <p className="mt-2 text-slate-500">Free trial · No credit card required</p>
         <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4 glass rounded-2xl p-6">
           <Input label="Your name" error={errors.full_name?.message} {...register('full_name')} />

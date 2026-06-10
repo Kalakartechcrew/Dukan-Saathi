@@ -23,7 +23,7 @@ export function SEO({
 }: SEOProps) {
   const siteName = 'Dukan Saathi'
   const fullTitle = title ? `${title} | ${siteName}` : siteName
-  const url = canonical || 'https://sathi.app' // Replace with actual production URL if known
+  const url = canonical || 'https://dukansaathi.shop' // Replace with actual production URL if known
 
   const defaultJsonLd = {
     '@context': 'https://schema.org',

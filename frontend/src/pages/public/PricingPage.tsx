@@ -39,7 +39,7 @@ export function PricingPage() {
     <PublicLayout>
       <SEO 
         title="Pricing Plans — Choose the Best for Your Shop"
-        description="Affordable pricing for Sathi inventory and billing software. Choose from Starter, Growth, or Enterprise plans."
+        description="Affordable pricing for Dukan Saathi inventory and billing software. Choose from Starter, Growth, or Enterprise plans."
       />
       <section className="bg-slate-50 py-24 px-6 lg:px-8">
         <div className="mx-auto max-w-4xl text-center">

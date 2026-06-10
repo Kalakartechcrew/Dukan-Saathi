@@ -51,7 +51,7 @@ export function LoginPage() {
         className="hidden w-1/2 flex-col justify-between bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 p-12 text-white lg:flex"
       >
         <div>
-          <h1 className="text-4xl font-bold">Sathi</h1>
+          <h1 className="text-4xl font-bold">Dukan Saathi</h1>
           <p className="mt-2 text-indigo-100">Your intelligent shop companion</p>
         </div>
         <p className="text-lg text-indigo-100">

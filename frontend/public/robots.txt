@@ -7,4 +7,4 @@ Disallow: /private
 Disallow: /settings
 Disallow: /onboarding
 
-Sitemap: https://sathi.app/sitemap.xml
+Sitemap: https://dukansaathi.shop/sitemap.xml

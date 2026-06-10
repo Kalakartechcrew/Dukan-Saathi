@@ -92,9 +92,9 @@ export function HelpCenterPage() {
                 <p className="mt-4 text-slate-400 text-sm">Our support team is available Monday to Saturday, 9 AM to 8 PM.</p>
                 
                 <div className="mt-8 space-y-4">
-                  <a href="mailto:support@sathi.app" className="flex items-center gap-x-3 text-sm hover:text-indigo-400 transition-colors">
+                  <a href="mailto:support@dukansaathi.shop" className="flex items-center gap-x-3 text-sm hover:text-indigo-400 transition-colors">
                     <Mail className="h-5 w-5" />
-                    support@sathi.app
+                    support@dukansaathi.shop
                   </a>
                   <a href="tel:+911234567890" className="flex items-center gap-x-3 text-sm hover:text-indigo-400 transition-colors">
                     <Phone className="h-5 w-5" />

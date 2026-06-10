@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const PUBLIC_DIR = path.resolve(__dirname, '../public')
-const SITE_URL = 'https://sathi.app'
+const SITE_URL = 'https://dukansaathi.shop'
 
 const pages = [
   { path: '/', priority: 1.0, changefreq: 'daily' },

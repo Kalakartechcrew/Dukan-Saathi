@@ -11,22 +11,23 @@ class Analytics {
   init() {
     if (typeof window === 'undefined' || this.isInitialized) return
     
-    // Google Analytics 4 (Placeholder ID)
-    const GA_ID = 'G-XXXXXXXXXX'
-    const script = document.createElement('script')
-    script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`
-    script.async = true
-    document.head.appendChild(script)
+    // Google Analytics 4 ID
+    const GA_ID = 'G-KBZPKCNC60'
 
-    window.dataLayer = window.dataLayer || []
-    window.gtag = function (...args: unknown[]) {
-      window.dataLayer.push(args)
+    // Check if gtag is already initialized (e.g., via index.html)
+    if (!window.gtag) {
+      const script = document.createElement('script')
+      script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_ID}`
+      script.async = true
+      document.head.appendChild(script)
+
+      window.dataLayer = window.dataLayer || []
+      window.gtag = function (...args: unknown[]) {
+        window.dataLayer.push(args)
+      }
+      window.gtag('js', new Date())
+      window.gtag('config', GA_ID, { send_page_view: true })
     }
-    window.gtag('js', new Date())
-    window.gtag('config', GA_ID, { send_page_view: true })
-
-    // Meta Pixel (Placeholder)
-    // Add initialization logic here if needed
 
     this.isInitialized = true
     console.log('📊 Analytics initialized')

@@ -41,10 +41,10 @@ export function PublicFooter() {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 to-indigo-600 shadow-lg shadow-indigo-500/20">
                 <span className="text-xl font-bold text-white">S</span>
               </div>
-              <span className="text-xl font-bold text-white">Sathi</span>
+              <span className="text-xl font-bold text-white">Dukan Saathi</span>
             </Link>
             <p className="text-sm leading-6">
-              Smart inventory and billing management for modern shopkeepers. Streamline your retail business with Sathi.
+              Smart inventory and billing management for modern shopkeepers. Streamline your retail business with Dukan Saathi.
             </p>
             <div className="flex space-x-6">
               {/* Social icons could go here */}

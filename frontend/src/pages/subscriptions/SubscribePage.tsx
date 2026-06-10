@@ -118,9 +118,9 @@ export function SubscribePage() {
     <div className="min-h-screen bg-slate-50 px-4 py-6 text-slate-950 dark:bg-slate-950 dark:text-white sm:px-6 lg:px-8">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 font-bold text-white">S</div>
+          <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-600 font-bold text-white">DS</div>
           <div>
-            <h1 className="text-xl font-bold">Choose your Sathi plan</h1>
+            <h1 className="text-xl font-bold">Choose your Dukan Saathi plan</h1>
             <p className="text-sm text-slate-500">Your shop workspace unlocks after successful payment.</p>
           </div>
         </div>

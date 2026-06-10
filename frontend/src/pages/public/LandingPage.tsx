@@ -66,7 +66,7 @@ export function LandingPage() {
 
   return (
     <PublicLayout>
-      <SEO title="Sathi — Smart POS & Inventory Management for Retail" />
+      <SEO title="Dukan Saathi — Smart POS & Inventory Management for Retail" />
 
       {/* Hero Section */}
       <section className="relative overflow-hidden pt-16 pb-24 lg:pt-32 lg:pb-40">
@@ -116,7 +116,7 @@ export function LandingPage() {
                 <div className="rounded-xl bg-white shadow-2xl ring-1 ring-slate-900/10 overflow-hidden">
                   <img
                     src="/ss2.png"
-                    alt="Sathi Dashboard Preview"
+                    alt="Dukan Saathi Dashboard Preview"
                     className="w-full h-auto max-h-[640px] object-cover object-top"
                   />
                 </div>
@@ -166,7 +166,7 @@ export function LandingPage() {
               One platform, endless possibilities.
             </p>
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              Stop juggling multiple apps. Sathi brings your inventory, POS, and customers into a single, beautiful dashboard.
+              Stop juggling multiple apps. Dukan Saathi brings your inventory, POS, and customers into a single, beautiful dashboard.
             </p>
           </div>
           

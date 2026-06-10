@@ -35,7 +35,7 @@ export function Sidebar() {
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white font-bold">
             S
           </div>
-          <span className="text-lg font-bold gradient-text">Sathi</span>
+          <span className="text-lg font-bold gradient-text">Dukan Saathi</span>
         </div>
         <nav className="flex-1 space-y-1 overflow-y-auto p-4">
           {items.map((item) => (

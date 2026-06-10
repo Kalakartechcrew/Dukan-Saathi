@@ -87,7 +87,7 @@ export function FeaturesPage() {
     <PublicLayout>
       <SEO 
         title="Features - Complete Retail Management Toolkit" 
-        description="Explore the powerful features of Sathi including POS, Inventory, GST Billing, Reports, and Customer Management. Everything your shop needs."
+        description="Explore the powerful features of Dukan Saathi including POS, Inventory, GST Billing, Reports, and Customer Management. Everything your shop needs."
       />
       
       <div className="bg-slate-50 py-24 sm:py-32">
@@ -104,7 +104,7 @@ export function FeaturesPage() {
               Everything you need to manage your shop like a pro
             </p>
             <p className="mt-6 text-lg leading-8 text-slate-600">
-              Stop using multiple apps and paper ledgers. Sathi brings all your retail operations into one unified, easy-to-use platform.
+              Stop using multiple apps and paper ledgers. Dukan Saathi brings all your retail operations into one unified, easy-to-use platform.
             </p>
           </div>
 
@@ -119,7 +119,7 @@ export function FeaturesPage() {
               <div className="rounded-xl bg-white shadow-2xl ring-1 ring-slate-900/10 overflow-hidden">
                 <img
                   src="/ss1.png"
-                  alt="Sathi Features Preview"
+                  alt="Dukan Saathi Features Preview"
                   className="w-full h-auto max-h-[600px] object-cover object-top"
                 />
               </div>
