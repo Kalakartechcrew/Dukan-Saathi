@@ -354,7 +354,7 @@ async def assert_feature_allowed(tenant_id: str, feature: str) -> dict:
     return subscription
 
 
-async def assert_limit_available(tenant_id: str, limit_name: str) -> dict:
+async def assert_limit_available(tenant_id: str, limit_name: str, count: int = 1) -> dict:
     subscription = await assert_subscription_active(tenant_id)
     plan = await get_plan(subscription.get("plan_id") or subscription.get("plan_code"))
     limits = (plan or {}).get("limits") or {}
@@ -370,7 +370,7 @@ async def assert_limit_available(tenant_id: str, limit_name: str) -> dict:
         used = await db.invoices.count_documents({"tenant_id": tenant_id, "created_at": {"$gte": start}})
     else:
         used = 0
-    if used >= int(limit):
+    if used + count > int(limit):
         raise HTTPException(status.HTTP_402_PAYMENT_REQUIRED, f"Plan limit reached for {limit_name}. Please upgrade.")
     return subscription
 

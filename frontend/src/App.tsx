@@ -75,9 +75,13 @@ function PageFallback() {
   )
 }
 
+function Tracker() {
+  useTracking()
+  return null
+}
+
 export default function App() {
   const theme = useThemeStore((s) => s.theme)
-  useTracking()
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
@@ -86,6 +90,7 @@ export default function App() {
   return (
     <QueryClientProvider client={qc}>
       <BrowserRouter>
+        <Tracker />
         <Suspense fallback={<PageFallback />}>
           <Routes>
             <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />

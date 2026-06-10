@@ -9,35 +9,56 @@ from app.models.base import serialize_doc, utc_now
 from app.schemas.product import ProductCreate, ProductUpdate
 
 
-async def _generate_sku(tenant_id: str, name: str) -> str:
+async def bulk_create_products(tenant_id: str, products: list[ProductCreate]) -> list[dict]:
+    db = get_db()
+    docs = []
+    now = utc_now()
+    
+    # Pre-count for SKU generation
+    current_count = await db.products.count_documents(tenant_filter(tenant_id))
+    
+    for i, data in enumerate(products):
+        sku = data.sku or await _generate_sku(tenant_id, data.name, base_count=current_count + i + 1)
+        margin = 0.0
+        if data.buying_price > 0:
+            margin = ((data.selling_price - data.buying_price) / data.buying_price) * 100
+
+        doc: dict[str, Any] = {
+            **data.model_dump(exclude={"variants"}, exclude_none=True),
+            "tenant_id": tenant_id,
+            "sku": sku,
+            "profit_margin": round(margin, 2),
+            "variants": [v.model_dump() for v in data.variants],
+            "is_active": True,
+            "created_at": now,
+            "updated_at": now,
+        }
+        if data.expiry_date:
+            doc["expiry_date"] = data.expiry_date
+        docs.append(doc)
+    
+    if not docs:
+        return []
+        
+    result = await db.products.insert_many(docs)
+    for i, inserted_id in enumerate(result.inserted_ids):
+        docs[i]["_id"] = inserted_id
+        
+    return [serialize_doc(d) for d in docs]
+
+
+async def _generate_sku(tenant_id: str, name: str, base_count: int = None) -> str:
     db = get_db()
     prefix = re.sub(r"[^A-Z0-9]", "", name.upper())[:4] or "PRD"
-    count = await db.products.count_documents(tenant_filter(tenant_id)) + 1
-    return f"{prefix}-{count:05d}"
+    if base_count is None:
+        base_count = await db.products.count_documents(tenant_filter(tenant_id)) + 1
+    return f"{prefix}-{base_count:05d}"
+
 
 
 async def create_product(tenant_id: str, data: ProductCreate) -> dict:
-    db = get_db()
-    sku = data.sku or await _generate_sku(tenant_id, data.name)
-    margin = 0.0
-    if data.buying_price > 0:
-        margin = ((data.selling_price - data.buying_price) / data.buying_price) * 100
-
-    doc: dict[str, Any] = {
-        **data.model_dump(exclude={"variants"}, exclude_none=True),
-        "tenant_id": tenant_id,
-        "sku": sku,
-        "profit_margin": round(margin, 2),
-        "variants": [v.model_dump() for v in data.variants],
-        "is_active": True,
-        "created_at": utc_now(),
-        "updated_at": utc_now(),
-    }
-    if doc.get("expiry_date"):
-        doc["expiry_date"] = data.expiry_date
-    result = await db.products.insert_one(doc)
-    doc["_id"] = result.inserted_id
-    return serialize_doc(doc)
+    products = await bulk_create_products(tenant_id, [data])
+    return products[0] if products else {}
 
 
 async def list_products(

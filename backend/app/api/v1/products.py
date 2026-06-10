@@ -46,6 +46,17 @@ async def create_product(
     return ProductResponse(**{k: product.get(k) for k in ProductResponse.model_fields})
 
 
+@router.post("/bulk", response_model=list[ProductResponse])
+async def bulk_create_products(
+    body: list[ProductCreate],
+    tenant_id: Annotated[str, Depends(get_tenant_id)],
+    _: Annotated[dict, Depends(require_permission(Permission.PRODUCTS_MANAGE))],
+):
+    await assert_limit_available(tenant_id, "products", count=len(body))
+    products = await product_service.bulk_create_products(tenant_id, body)
+    return [ProductResponse(**{k: i.get(k) for k in ProductResponse.model_fields}) for i in products]
+
+
 @router.get("/{product_id}", response_model=ProductResponse)
 async def get_product(
     product_id: str,

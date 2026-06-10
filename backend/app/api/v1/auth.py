@@ -41,6 +41,11 @@ async def signup(body: SignUpRequest):
             default_tax_rate=body.default_tax_rate,
             logo_url=body.logo_url,
             upi_id=body.upi_id,
+            utm_source=body.utm_source,
+            utm_medium=body.utm_medium,
+            utm_campaign=body.utm_campaign,
+            utm_term=body.utm_term,
+            utm_content=body.utm_content,
         )
     except ValueError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(e))

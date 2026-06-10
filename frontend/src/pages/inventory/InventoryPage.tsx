@@ -1,7 +1,9 @@
-import { useState } from 'react'
+import { useState, useRef, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Edit3, Plus, Search, Package, Trash2, X } from 'lucide-react'
+import { Edit3, Plus, Search, Package, Trash2, X, Upload, AlertCircle, CheckCircle2, FileSpreadsheet, Download } from 'lucide-react'
 import toast from 'react-hot-toast'
+import Papa from 'papaparse'
+import * as XLSX from 'xlsx'
 import api from '@/lib/api'
 import { Button } from '@/components/ui/Button'
 import { Card } from '@/components/ui/Card'
@@ -21,6 +23,18 @@ interface ProductRow {
   tax_rate?: number
   low_stock_threshold?: number
 }
+
+interface ImportRow {
+  name: string
+  selling_price: string
+  buying_price: string
+  quantity: string
+  unit: string
+  errors?: string[]
+  is_valid?: boolean
+}
+
+const REQUIRED_HEADERS = ['Name', 'Selling price', 'Buying price', 'Quantity', 'Unit']
 
 const UNIT_GROUPS = [
   {
@@ -127,6 +141,12 @@ export function InventoryPage() {
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({ name: '', selling_price: '', buying_price: '', quantity: '', unit: 'piece' })
   const [editing, setEditing] = useState<ProductRow | null>(null)
+  
+  // Import state
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importRows, setImportRows] = useState<ImportRow[]>([])
+  const [isProcessingFile, setIsProcessingFile] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['products', search],
@@ -148,6 +168,25 @@ export function InventoryPage() {
       qc.invalidateQueries({ queryKey: ['products'] })
     },
     onError: () => toast.error('Failed to add product'),
+  })
+
+  const bulkCreate = useMutation({
+    mutationFn: (rows: ImportRow[]) => api.post('/products/bulk', rows.map(r => ({
+      name: r.name,
+      selling_price: parseFloat(r.selling_price),
+      buying_price: parseFloat(r.buying_price) || 0,
+      quantity: parseFloat(r.quantity) || 0,
+      unit: r.unit.toLowerCase(),
+    }))),
+    onSuccess: (res) => {
+      toast.success(`${res.data.length} products imported`)
+      qc.invalidateQueries({ queryKey: ['products'] })
+      qc.invalidateQueries({ queryKey: ['dashboard'] })
+    },
+    onError: (error: unknown) => {
+      const msg = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to import products'
+      toast.error(msg)
+    }
   })
 
   const updateProduct = useMutation({
@@ -182,6 +221,153 @@ export function InventoryPage() {
     onError: () => toast.error('Failed to delete product'),
   })
 
+  const validateRows = (rows: Record<string, unknown>[]): ImportRow[] => {
+    return rows.map(row => {
+      const errors: string[] = []
+      
+      const name = String(row.Name || '').trim()
+      if (!name) errors.push('Name is required')
+      
+      const sp = parseFloat(String(row['Selling price'] || '0'))
+      if (isNaN(sp)) errors.push('Invalid Selling price')
+      
+      const bp = parseFloat(String(row['Buying price'] || '0'))
+      if (isNaN(bp)) errors.push('Invalid Buying price')
+      
+      const qty = parseFloat(String(row['Quantity'] || '0'))
+      if (isNaN(qty)) errors.push('Invalid Quantity')
+      
+      const unit = String(row['Unit'] || '').trim().toLowerCase()
+      if (!unit || !UNIT_LABELS[unit]) errors.push('Unsupported Unit')
+
+      return {
+        name: name,
+        selling_price: String(row['Selling price'] || ''),
+        buying_price: String(row['Buying price'] || ''),
+        quantity: String(row['Quantity'] || ''),
+        unit: unit || '',
+        errors,
+        is_valid: errors.length === 0
+      }
+    })
+  }
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsProcessingFile(true)
+    const fileName = file.name.toLowerCase()
+
+    if (fileName.endsWith('.csv')) {
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          processParsedData(results.data, results.meta.fields || [])
+        },
+        error: () => {
+          toast.error('Failed to parse CSV file')
+          setIsProcessingFile(false)
+        }
+      })
+    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      const reader = new FileReader()
+      reader.onload = (evt) => {
+        const bstr = evt.target?.result
+        const wb = XLSX.read(bstr, { type: 'binary' })
+        const wsname = wb.SheetNames[0]
+        const ws = wb.Sheets[wsname]
+        const data = XLSX.utils.sheet_to_json(ws)
+        const headers = data.length > 0 ? Object.keys(data[0] as object) : []
+        processParsedData(data, headers)
+      }
+      reader.onerror = () => {
+        toast.error('Failed to read Excel file')
+        setIsProcessingFile(false)
+      }
+      reader.readAsBinaryString(file)
+    } else {
+      toast.error('Unsupported file format. Use CSV or Excel.')
+      setIsProcessingFile(false)
+    }
+  }
+
+  const processParsedData = (data: unknown[], headers: string[]) => {
+    const missingHeaders = REQUIRED_HEADERS.filter(h => !headers.includes(h))
+    const extraHeaders = headers.filter(h => !REQUIRED_HEADERS.includes(h))
+
+    if (missingHeaders.length > 0) {
+      toast.error(`Missing columns: ${missingHeaders.join(', ')}`)
+      setIsProcessingFile(false)
+      return
+    }
+
+    if (extraHeaders.length > 0) {
+      toast.error(`File contains extra columns: ${extraHeaders.join(', ')}. Only Name, Selling price, Buying price, Quantity, Unit are allowed.`)
+      setIsProcessingFile(false)
+      return
+    }
+
+    const validated = validateRows(data as Record<string, unknown>[])
+    setImportRows(validated)
+    setIsProcessingFile(false)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+  }
+
+  const handleImportValid = async () => {
+    const validRows = importRows.filter(r => r.is_valid)
+    if (validRows.length === 0) return
+
+    await bulkCreate.mutateAsync(validRows)
+    
+    // Keep only invalid rows for the user to fix
+    setImportRows(prev => prev.filter(r => !r.is_valid))
+  }
+
+  const updateImportRow = (index: number, field: keyof ImportRow, value: string) => {
+    setImportRows(prev => {
+      const next = [...prev]
+      const row = { ...next[index], [field]: value }
+      
+      // Re-validate this row
+      const errors: string[] = []
+      if (!row.name || row.name.trim() === '') errors.push('Name is required')
+      if (isNaN(parseFloat(row.selling_price))) errors.push('Invalid Selling price')
+      if (isNaN(parseFloat(row.buying_price))) errors.push('Invalid Buying price')
+      if (isNaN(parseFloat(row.quantity))) errors.push('Invalid Quantity')
+      const unit = row.unit.trim().toLowerCase()
+      if (!unit || !UNIT_LABELS[unit]) errors.push('Unsupported Unit')
+      
+      row.errors = errors
+      row.is_valid = errors.length === 0
+      next[index] = row
+      return next
+    })
+  }
+
+  const removeImportRow = (index: number) => {
+    setImportRows(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const downloadTemplate = () => {
+    const csv = Papa.unparse([REQUIRED_HEADERS.reduce((acc, h) => ({ ...acc, [h]: '' }), {})])
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'inventory_template.csv'
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const importStats = useMemo(() => {
+    const total = importRows.length
+    const valid = importRows.filter(r => r.is_valid).length
+    const invalid = total - valid
+    return { total, valid, invalid }
+  }, [importRows])
+
   const products: ProductRow[] = data?.items || []
 
   return (
@@ -191,10 +377,157 @@ export function InventoryPage() {
           <h2 className="text-2xl font-bold">Inventory</h2>
           <p className="text-slate-500">Manage products & stock</p>
         </div>
-        <Button onClick={() => setShowForm(!showForm)} tooltip="Show or hide the new product form.">
-          <Plus className="h-4 w-4" /> Add Product
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" onClick={() => setShowImportModal(true)} tooltip="Import products from a CSV or Excel file.">
+            <Upload className="h-4 w-4" /> Import
+          </Button>
+          <Button onClick={() => setShowForm(!showForm)} tooltip="Show or hide the new product form.">
+            <Plus className="h-4 w-4" /> Add Product
+          </Button>
+        </div>
       </div>
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/50 p-4 backdrop-blur-sm">
+          <div className="mx-auto max-w-5xl rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-950">
+            <div className="flex items-center justify-between gap-4">
+              <h3 className="text-xl font-bold">Import Inventory</h3>
+              <Button variant="ghost" onClick={() => { setShowImportModal(false); setImportRows([]); }} tooltip="Close import wizard."><X className="h-4 w-4" /></Button>
+            </div>
+
+            {importRows.length === 0 ? (
+              <div className="mt-8 flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-slate-200 py-16 dark:border-slate-800">
+                <FileSpreadsheet className="h-16 w-16 text-slate-300" />
+                <p className="mt-4 text-center text-slate-500">
+                  Upload a CSV or Excel file to bulk import products.<br />
+                  Columns must be: <strong>{REQUIRED_HEADERS.join(', ')}</strong>
+                </p>
+                <div className="mt-8 flex gap-4">
+                  <Button variant="secondary" onClick={downloadTemplate} tooltip="Download a sample CSV file with correct headers.">
+                    <Download className="h-4 w-4" /> Download Template
+                  </Button>
+                  <Button onClick={() => fileInputRef.current?.click()} loading={isProcessingFile} tooltip="Select a file from your computer.">
+                    Select File
+                  </Button>
+                </div>
+                <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".csv,.xlsx,.xls" className="hidden" />
+              </div>
+            ) : (
+              <div className="mt-6 space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-slate-50 p-4 dark:bg-slate-900">
+                  <div className="flex gap-6">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                      <span className="font-semibold text-emerald-700">{importStats.valid} Ready</span>
+                    </div>
+                    {importStats.invalid > 0 && (
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="h-5 w-5 text-amber-500" />
+                        <span className="font-semibold text-amber-700">{importStats.invalid} Need Correction</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button variant="secondary" onClick={() => setImportRows([])} tooltip="Discard current file and upload a new one.">Reset</Button>
+                    <Button 
+                      onClick={handleImportValid} 
+                      disabled={importStats.valid === 0} 
+                      loading={bulkCreate.isPending}
+                      tooltip="Save all valid products to inventory."
+                    >
+                      Import {importStats.valid} Valid Rows
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="max-h-[500px] overflow-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-white dark:bg-slate-950">
+                      <tr className="border-b text-left text-slate-500">
+                        <th className="p-3">Status</th>
+                        <th className="p-3">Name</th>
+                        <th className="p-3">Sell Price</th>
+                        <th className="p-3">Buy Price</th>
+                        <th className="p-3">Qty</th>
+                        <th className="p-3">Unit</th>
+                        <th className="p-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importRows.map((row, idx) => (
+                        <tr key={idx} className={`border-b border-slate-100 dark:border-slate-800 ${row.is_valid ? '' : 'bg-amber-50/30'}`}>
+                          <td className="p-3">
+                            {row.is_valid ? (
+                              <CheckCircle2 className="h-5 w-5 text-emerald-500" />
+                            ) : (
+                              <div className="group relative">
+                                <AlertCircle className="h-5 w-5 text-amber-500" />
+                                <div className="absolute bottom-full left-0 mb-2 hidden w-48 rounded-lg bg-slate-900 p-2 text-xs text-white group-hover:block">
+                                  {row.errors?.join(', ')}
+                                </div>
+                              </div>
+                            )}
+                          </td>
+                          <td className="p-3 min-w-[150px]">
+                            <input 
+                              className="w-full bg-transparent focus:outline-none" 
+                              value={row.name} 
+                              onChange={(e) => updateImportRow(idx, 'name', e.target.value)}
+                            />
+                          </td>
+                          <td className="p-3 w-24">
+                            <input 
+                              type="number"
+                              className="w-full bg-transparent focus:outline-none" 
+                              value={row.selling_price} 
+                              onChange={(e) => updateImportRow(idx, 'selling_price', e.target.value)}
+                            />
+                          </td>
+                          <td className="p-3 w-24">
+                            <input 
+                              type="number"
+                              className="w-full bg-transparent focus:outline-none" 
+                              value={row.buying_price} 
+                              onChange={(e) => updateImportRow(idx, 'buying_price', e.target.value)}
+                            />
+                          </td>
+                          <td className="p-3 w-24">
+                            <input 
+                              type="number"
+                              step="0.01"
+                              className="w-full bg-transparent focus:outline-none" 
+                              value={row.quantity} 
+                              onChange={(e) => updateImportRow(idx, 'quantity', e.target.value)}
+                            />
+                          </td>
+                          <td className="p-3 w-32">
+                            <select 
+                              className="w-full bg-transparent focus:outline-none" 
+                              value={row.unit} 
+                              onChange={(e) => updateImportRow(idx, 'unit', e.target.value)}
+                            >
+                              <option value="">Select Unit</option>
+                              {UNIT_GROUPS.flatMap(g => g.units).map(u => (
+                                <option key={u.value} value={u.value}>{u.label}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="p-3 text-right">
+                            <Button size="sm" variant="ghost" onClick={() => removeImportRow(idx)} tooltip="Delete this row from import list.">
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <Card className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">

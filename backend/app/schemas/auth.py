@@ -19,6 +19,11 @@ class SignUpRequest(BaseModel):
     default_tax_rate: float = 0
     logo_url: Optional[str] = None
     upi_id: Optional[str] = None
+    utm_source: Optional[str] = None
+    utm_medium: Optional[str] = None
+    utm_campaign: Optional[str] = None
+    utm_term: Optional[str] = None
+    utm_content: Optional[str] = None
 
 
 class LoginRequest(BaseModel):

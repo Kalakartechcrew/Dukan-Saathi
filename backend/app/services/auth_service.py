@@ -45,6 +45,11 @@ async def register_user(
     default_tax_rate: float = 0,
     logo_url: str | None = None,
     upi_id: str | None = None,
+    utm_source: str | None = None,
+    utm_medium: str | None = None,
+    utm_campaign: str | None = None,
+    utm_term: str | None = None,
+    utm_content: str | None = None,
 ):
     db = get_db()
     if await db.users.find_one({"email": email.lower()}):
@@ -89,6 +94,13 @@ async def register_user(
             "template_id": "modern",
             "terms": "Goods once sold can be returned only as per shop policy.",
             "footer_note": "Thank you for shopping with us.",
+        },
+        "acquisition": {
+            "utm_source": utm_source,
+            "utm_medium": utm_medium,
+            "utm_campaign": utm_campaign,
+            "utm_term": utm_term,
+            "utm_content": utm_content,
         },
         "subscription_plan": None,
         "subscription_status": "pending",

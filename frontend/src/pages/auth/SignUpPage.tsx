@@ -33,6 +33,11 @@ const schema = z.object({
   default_tax_rate: z.number().min(0).max(100),
   logo_url: z.string().optional(),
   upi_id: z.string().regex(/^[\w.-]+@[\w.-]+$/, 'Enter a valid UPI ID').optional().or(z.literal('')),
+  utm_source: z.string().optional(),
+  utm_medium: z.string().optional(),
+  utm_campaign: z.string().optional(),
+  utm_term: z.string().optional(),
+  utm_content: z.string().optional(),
 })
 
 type Form = z.infer<typeof schema>
@@ -44,7 +49,17 @@ export function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false)
   const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm<Form>({
     resolver: zodResolver(schema),
-    defaultValues: { business_type: 'general_store', country: 'IN', currency: 'INR', default_tax_rate: 0 },
+    defaultValues: { 
+      business_type: 'general_store', 
+      country: 'IN', 
+      currency: 'INR', 
+      default_tax_rate: 0,
+      utm_source: sessionStorage.getItem('utm_source') || undefined,
+      utm_medium: sessionStorage.getItem('utm_medium') || undefined,
+      utm_campaign: sessionStorage.getItem('utm_campaign') || undefined,
+      utm_term: sessionStorage.getItem('utm_term') || undefined,
+      utm_content: sessionStorage.getItem('utm_content') || undefined,
+    },
   })
   const logo = watch('logo_url')
 
@@ -66,7 +81,11 @@ export function SignUpPage() {
       const { data: user } = await api.get('/auth/me', {
         headers: { Authorization: `Bearer ${tokens.access_token}` },
       })
-      setAuth(user, tokens.access_token, tokens.refresh_token)
+      setAuth(user, tokens.access_token, tokens.refresh_token);
+      
+      // Clear UTMs from storage after success
+      (['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'] as const).forEach(k => sessionStorage.removeItem(k));
+      
       toast.success('Shop created! Complete setup.')
       navigate('/onboarding')
     } catch (e: unknown) {
