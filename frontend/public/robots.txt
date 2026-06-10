@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /api
+Disallow: /private
+Disallow: /settings
+Disallow: /onboarding
+
+Sitemap: https://sathi.app/sitemap.xml

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Search, Plus, Minus, Trash2, CreditCard, Banknote, Smartphone, X } from 'lucide-react'
@@ -51,7 +51,15 @@ export function POSPage() {
   const [amountReceived, setAmountReceived] = useState('')
   const [stockEdit, setStockEdit] = useState<{ product: Product; quantity: string } | null>(null)
   const [paymentQr, setPaymentQr] = useState<PaymentQr | null>(null)
-  const [sendBillOnWhatsapp, setSendBillOnWhatsapp] = useState(true)
+
+  const { data: shop } = useQuery({
+    queryKey: ['shop'],
+    queryFn: async () => (await api.get('/shops/me')).data,
+  })
+
+  const [sendBillOnWhatsappOverride, setSendBillOnWhatsappOverride] = useState<boolean | null>(null)
+  const sendBillOnWhatsapp = sendBillOnWhatsappOverride ?? shop?.payment?.whatsapp_bill_enabled ?? true
+  const setSendBillOnWhatsapp = (val: boolean) => setSendBillOnWhatsappOverride(val)
 
   const { data: productsData } = useQuery({
     queryKey: ['products', search],
@@ -65,24 +73,16 @@ export function POSPage() {
     enabled: customerSearch.length >= 2,
   })
 
-  const customerOptions: CustomerOption[] = customersData?.items || []
-
-  const { data: shop } = useQuery({
-    queryKey: ['shop'],
-    queryFn: async () => (await api.get('/shops/me')).data,
-  })
+  const customerOptions: CustomerOption[] = useMemo(() => customersData?.items || [], [customersData])
 
   useEffect(() => {
     if (customer.id || !customer.phone.trim() || !customerOptions.length) return
     const exact = customerOptions.find((item) => item.phone === customer.phone.trim())
     if (exact) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCustomer({ id: exact.id, name: exact.name, phone: exact.phone || '' })
     }
   }, [customer.id, customer.phone, customerOptions])
-
-  useEffect(() => {
-    setSendBillOnWhatsapp(shop?.payment?.whatsapp_bill_enabled ?? true)
-  }, [shop?.payment?.whatsapp_bill_enabled])
 
   const openInvoice = useCallback(async (invoiceId: string) => {
     const res = await api.get(`/billing/invoices/${invoiceId}/html`, { responseType: 'blob' })

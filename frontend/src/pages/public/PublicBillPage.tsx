@@ -6,15 +6,14 @@ import { Skeleton } from '@/components/ui/Skeleton'
 export function PublicBillPage() {
   const { invoiceId } = useParams()
   const [params] = useSearchParams()
+  const token = params.get('token')
   const [html, setHtml] = useState('')
-  const [error, setError] = useState('')
+  const [errorOverride, setErrorOverride] = useState('')
+
+  const error = errorOverride || ((!invoiceId || !token) ? 'This bill link is incomplete.' : '')
 
   useEffect(() => {
-    const token = params.get('token')
-    if (!invoiceId || !token) {
-      setError('This bill link is incomplete.')
-      return
-    }
+    if (!invoiceId || !token) return
 
     api.get(`/billing/public/invoices/${invoiceId}/html`, {
       params: { token },
@@ -22,8 +21,8 @@ export function PublicBillPage() {
       transformResponse: [(data) => data],
     })
       .then((res) => setHtml(res.data))
-      .catch(() => setError('This bill link is invalid or expired.'))
-  }, [invoiceId, params])
+      .catch(() => setErrorOverride('This bill link is invalid or expired.'))
+  }, [invoiceId, token])
 
   if (error) {
     return (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { CreditCard, ExternalLink, Receipt, Users, Plus, X } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
@@ -46,7 +46,6 @@ export function CustomersPage() {
   const [payment, setPayment] = useState({ customerId: '', amount: '', method: 'cash' })
   const [upiQr, setUpiQr] = useState<{ amount: number; url: string } | null>(null)
   const [selected, setSelected] = useState<Customer | null>(null)
-  const [sendReceiptOnWhatsapp, setSendReceiptOnWhatsapp] = useState(true)
 
   const { data, isLoading } = useQuery({
     queryKey: ['customers'],
@@ -64,9 +63,9 @@ export function CustomersPage() {
     queryFn: async () => (await api.get('/shops/me')).data,
   })
 
-  useEffect(() => {
-    setSendReceiptOnWhatsapp(shop?.payment?.whatsapp_bill_enabled ?? true)
-  }, [shop?.payment?.whatsapp_bill_enabled])
+  const [sendReceiptOnWhatsappOverride, setSendReceiptOnWhatsappOverride] = useState<boolean | null>(null)
+  const sendReceiptOnWhatsapp = sendReceiptOnWhatsappOverride ?? shop?.payment?.whatsapp_bill_enabled ?? true
+  const setSendReceiptOnWhatsapp = (val: boolean) => setSendReceiptOnWhatsappOverride(val)
 
   const create = useMutation({
     mutationFn: () => api.post('/customers', { name, phone }),

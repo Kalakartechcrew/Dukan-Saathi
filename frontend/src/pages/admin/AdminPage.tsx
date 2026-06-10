@@ -192,7 +192,8 @@ export function AdminPage() {
   const tenantRows: Tenant[] = tenants.data?.items || []
   const planRows: Plan[] = plans.data || []
   const visibleLimits = (limits: Record<string, unknown> = {}) => {
-    const { staff_accounts: _staffAccounts, ...rest } = limits
+    const rest = { ...limits }
+    delete rest.staff_accounts
     return rest
   }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { KeyRound, Save, Store } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -64,6 +64,7 @@ const emptyForm: ShopForm = {
 export function SettingsPage() {
   const qc = useQueryClient()
   const [form, setForm] = useState<ShopForm>(emptyForm)
+  const [prevShopId, setPrevShopId] = useState<string | null>(null)
   const [passwordForm, setPasswordForm] = useState({ current: '', next: '', confirm: '' })
   const [passwordVisible, setPasswordVisible] = useState({ current: false, next: false, confirm: false })
 
@@ -72,8 +73,7 @@ export function SettingsPage() {
     queryFn: async () => (await api.get('/shops/me')).data,
   })
 
-  useEffect(() => {
-    if (!data) return
+  if (data && data.id !== prevShopId) {
     setForm({
       name: data.name || '',
       business_type: data.business_type || 'general_store',
@@ -99,7 +99,8 @@ export function SettingsPage() {
       show_upi_qr_on_invoice: data.payment?.show_upi_qr_on_invoice ?? Boolean(data.payment?.upi_id),
       whatsapp_bill_enabled: data.payment?.whatsapp_bill_enabled ?? true,
     })
-  }, [data])
+    setPrevShopId(data.id)
+  }
 
   const saveShop = useMutation({
     mutationFn: () => api.patch('/shops/me', {
